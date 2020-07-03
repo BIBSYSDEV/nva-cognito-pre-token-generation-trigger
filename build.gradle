@@ -1,0 +1,110 @@
+plugins {
+    id 'java-library'
+    id 'jacoco'
+    id 'checkstyle'
+    id 'pmd'
+    id 'nebula.lint' version '16.8.0'
+}
+
+group 'no.unit.nva'
+version '1.0-SNAPSHOT'
+
+allprojects {
+    apply plugin: 'nebula.lint'
+
+    gradleLint.rules = ['unused-dependency']
+
+    repositories {
+        jcenter()
+        maven { url "https://jitpack.io" }
+    }
+
+    apply plugin: 'java-library'
+    apply plugin: 'jacoco'
+    apply plugin: 'checkstyle'
+    apply plugin: 'pmd'
+
+    sourceCompatibility = JavaVersion.VERSION_11
+    // source-code version and must be <= targetCompatibility
+    targetCompatibility = JavaVersion.VERSION_11 // bytecode target version
+
+    def junit5Version = '5.6.0'
+    def jacksonVersion = '2.10.2'
+    def awsSdkVersion = '1.11.807'
+
+    dependencies {
+        implementation group: 'com.github.BIBSYSDEV', name: 'nva-commons', version: '0.3.8'
+        implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: jacksonVersion
+        implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: jacksonVersion
+        implementation group: 'com.fasterxml.jackson.core', name: 'jackson-annotations', version: jacksonVersion
+        implementation group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-jsr310', version: jacksonVersion
+        implementation group: 'org.slf4j', name: 'slf4j-api', version: '1.8.0-beta4'
+        implementation group: 'com.amazonaws', name: 'aws-lambda-java-core', version: '1.2.0'
+        implementation group: 'com.amazonaws', name: 'aws-java-sdk-lambda', version: awsSdkVersion
+        implementation group: 'com.amazonaws', name: 'aws-java-sdk-cognitoidp', version: awsSdkVersion
+        implementation group: 'org.apache.httpcomponents', name: 'httpclient', version: '4.5.9'
+
+        testImplementation group: 'org.hamcrest', name: 'hamcrest', version: '2.2'
+        testImplementation group: 'org.mockito', name: 'mockito-core', version: '3.2.4'
+        testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: junit5Version
+        testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: junit5Version
+        testRuntimeOnly group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: junit5Version
+    }
+
+    test {
+        useJUnitPlatform()
+        failFast = true
+        testLogging {
+            events 'skipped', 'passed', 'failed'
+        }
+        finalizedBy jacocoTestReport
+    }
+
+    jacocoTestReport {
+        reports {
+            xml.enabled true
+        }
+    }
+
+    pmd {
+        ruleSetConfig = rootProject.resources.text.fromFile('config/pmd/ruleset.xml')
+        ruleSets = []
+        ignoreFailures = false
+    }
+
+    checkstyle {
+        configFile = rootProject.resources.text.fromFile('config/checkstyle/checkstyle.xml').asFile()
+        showViolations = true
+    }
+
+    tasks.withType(Checkstyle) {
+        reports {
+            xml.enabled false
+            html.enabled true
+            html.stylesheet rootProject.resources.text.fromFile('config/checkstyle/checkstyle-simple.xsl')
+        }
+    }
+
+    check.dependsOn jacocoTestCoverageVerification
+    jacocoTestCoverageVerification.dependsOn(jacocoTestReport)
+
+    jacocoTestCoverageVerification {
+        violationRules {
+            rule {
+                limit {
+                    counter = 'METHOD'
+                    value = 'COVEREDRATIO'
+                    minimum = 1.00
+                }
+            }
+
+            rule {
+                limit {
+                    counter = 'CLASS'
+                    value = 'COVEREDRATIO'
+                    minimum = 1.00
+                }
+            }
+        }
+    }
+}

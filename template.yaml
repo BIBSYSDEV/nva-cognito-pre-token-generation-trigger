@@ -1,0 +1,85 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  AWS
+
+  Sample SAM Template for AWS
+
+Metadata:
+  AWS::ServerlessRepo::Application:
+    Name: NvaInfrastructureFunctions
+    Description: NVA Infrastructure Functions
+    Author: Unit
+    SpdxLicenseId: MIT
+    LicenseUrl: LICENSE
+    Labels: ['${GIT_REPO}', '${CODEBUILD_RESOLVED_SOURCE_VERSION}', '@${BUILD_TIMESTAMP}']
+
+Globals:
+  Function:
+    Timeout: 20
+
+Parameters:
+  CustomDomain:
+    Type: String
+    Description: Custom API to connect this lambda to
+
+Resources:
+  
+  TriggerExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: [lambda.amazonaws.com]
+            Action: ['sts:AssumeRole']
+      Path: /
+      Policies:
+        - PolicyName: writeLog
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:*:*"
+        - PolicyName: AddUserToGroup
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - cognito-idp:AdminAddUserToGroup
+                  - cognito-idp:AdminUpdateUserAttributes
+                Resource: !Sub 'arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/*'
+
+  InvokePostAuthenticationTriggerPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref PostAuthenticationTrigger
+      Principal: cognito-idp.amazonaws.com
+
+  PostAuthenticationTrigger:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/cognito-post-authentication
+      Handler: no.unit.nva.cognito.PostAuthenticationHandler::handleRequest
+      Runtime: java11
+      Role: !GetAtt TriggerExecutionRole.Arn
+      MemorySize: 1408
+      Environment:
+        Variables:
+          CUSTOMER_API_SCHEME: https
+          CUSTOMER_API_HOST: !Ref CustomDomain
+
+Outputs:
+  CognitoPostAuthenticationFunction:
+    Description: ARN Identifier of the PostAuthenticationTrigger
+    Value: !GetAtt PostAuthenticationTrigger.Arn
+    Export:
+      Name: CognitoPostAuthenticationFunctionArn

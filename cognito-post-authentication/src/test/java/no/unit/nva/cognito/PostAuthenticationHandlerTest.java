@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import no.unit.nva.cognito.service.CustomerApi;
+import no.unit.nva.cognito.service.UserApi;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -27,6 +28,7 @@ import org.junit.jupiter.api.Test;
 public class PostAuthenticationHandlerTest {
 
     private CustomerApi customerApi;
+    private UserApi userApi;
     private PostAuthenticationHandler handler;
     private AWSCognitoIdentityProvider awsCognitoIdentityProvider;
 
@@ -36,8 +38,9 @@ public class PostAuthenticationHandlerTest {
     @BeforeEach
     public void init() {
         customerApi = mock(CustomerApi.class);
+        userApi = mock(UserApi.class);
         awsCognitoIdentityProvider = mock(AWSCognitoIdentityProvider.class);
-        handler = new PostAuthenticationHandler(customerApi, awsCognitoIdentityProvider);
+        handler = new PostAuthenticationHandler(customerApi, userApi, awsCognitoIdentityProvider);
     }
 
     @Test

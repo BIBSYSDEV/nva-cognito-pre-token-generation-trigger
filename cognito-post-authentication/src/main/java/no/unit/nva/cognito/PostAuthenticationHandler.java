@@ -12,9 +12,13 @@ import java.net.http.HttpClient;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.stream.Collectors;
+import no.unit.nva.cognito.model.Role;
+import no.unit.nva.cognito.model.User;
 import no.unit.nva.cognito.service.CustomerApi;
 import no.unit.nva.cognito.service.CustomerApiClient;
+import no.unit.nva.cognito.service.UserApi;
+import no.unit.nva.cognito.service.UserApiClient;
 import no.unit.nva.cognito.util.OrgNumberCleaner;
 import nva.commons.utils.Environment;
 import nva.commons.utils.JacocoGenerated;
@@ -38,12 +42,13 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String,Obje
     public static final String FEIDE_PREFIX = "feide:";
     public static final String NVA = "NVA";
     public static final String PUBLISHER = "Publisher";
-    public static final String PUBLISHER_GROUP = "PublisherGroup";
     public static final String STAFF = "staff";
     public static final String REQUEST = "request";
     public static final String COMMA_DELIMITER = ",";
+    public static final String ROLE_GROUP_TEMPLATE = "%sGroup";
 
     private final CustomerApi customerApi;
+    private final UserApi userApi;
     private final AWSCognitoIdentityProvider awsCognitoIdentityProvider;
 
     private static final Logger logger = LoggerFactory.getLogger(PostAuthenticationHandler.class);
@@ -55,6 +60,7 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String,Obje
     public PostAuthenticationHandler() {
         this(
             new CustomerApiClient(HttpClient.newHttpClient(), new ObjectMapper(), new Environment()),
+            new UserApiClient(HttpClient.newHttpClient(), new ObjectMapper(), new Environment()),
             AWSCognitoIdentityProviderClient.builder().build()
         );
 
@@ -64,10 +70,13 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String,Obje
      * Constructor for PostAuthenticationHandler.
      *
      * @param customerApi   customerApi
+     * @param userApi   userApi
      * @param awsCognitoIdentityProvider    awsCognitoIdentityProvider
      */
-    public PostAuthenticationHandler(CustomerApi customerApi, AWSCognitoIdentityProvider awsCognitoIdentityProvider) {
+    public PostAuthenticationHandler(CustomerApi customerApi, UserApi userApi,
+                                     AWSCognitoIdentityProvider awsCognitoIdentityProvider) {
         this.customerApi = customerApi;
+        this.userApi = userApi;
         this.awsCognitoIdentityProvider = awsCognitoIdentityProvider;
     }
 
@@ -78,40 +87,89 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String,Obje
 
         Map<String,Object> userAttributes = getMap(getMap(event, REQUEST), USER_ATTRIBUTES);
 
+        String feideId = getStringValue(userAttributes, CUSTOM_FEIDE_ID);
+        String customerId = mapOrgNumberToCustomerId(getOrgNumberNoPrefix(userAttributes));
+        String affiliation = getAffiliation(userAttributes);
+
+        User user = getOrCreateUser(feideId, customerId, affiliation);
+
         updateUserAttributes(
             userPoolId,
             userName,
-            createUserAttributes(userAttributes));
+            createUserAttributes(userAttributes, user));
 
-        if (getAffiliation(userAttributes).contains(STAFF)) {
-            addUserToGroup(userPoolId, userName, PUBLISHER_GROUP);
-        } else {
-            logger.info("No staff affiliation for publisher group");
-        }
+        updateUserGroups(
+            userPoolId,
+            userName,
+            user.getRoles()
+        );
 
         return event;
     }
 
-    private List<AttributeType> createUserAttributes(Map<String, Object> userAttributes) {
+    private void updateUserGroups(String userPoolId, String userName, List<Role> roles) {
+        roles.stream().forEach(role -> addUserToGroup(userPoolId, userName, toRoleGroupName(role)));
+    }
+
+    private String toRoleGroupName(Role role) {
+        return String.format(ROLE_GROUP_TEMPLATE, role.getRolename());
+    }
+
+    private User getOrCreateUser(String feideId, String customerId, String affiliation) {
+        return userApi
+            .getUser(feideId)
+            .orElse(createUser(feideId, customerId, affiliation));
+    }
+
+    private User createUser(String feideId, String customerId, String affiliation) {
+        List<Role> roles = createRoles(affiliation);
+        User user = new User(feideId, customerId, roles);
+        userApi.createUser(user);
+        return user;
+    }
+
+    private List<Role> createRoles(String affiliation) {
+        List<Role> roles = new ArrayList<>();
+        if (affiliation.contains(STAFF)) {
+            roles.add(new Role(PUBLISHER));
+        }
+        return roles;
+    }
+
+    private String getOrgNumberNoPrefix(Map<String, Object> userAttributes) {
+        String orgNumber = getStringValue(userAttributes, CUSTOM_ORG_NUMBER);
+        return OrgNumberCleaner.removeCountryPrefix(orgNumber);
+    }
+
+    private String mapOrgNumberToCustomerId(String orgNumber) {
+        return customerApi.getCustomerId(orgNumber)
+            .stream()
+            .findFirst()
+            .orElseThrow(() -> new IllegalStateException("No customer found for orgNumber: " + orgNumber));
+    }
+
+    private List<AttributeType> createUserAttributes(Map<String, Object> userAttributes, User user) {
         List<AttributeType> userAttributeTypes = new ArrayList<>();
 
-        createCustomerIdAttribute(userAttributes)
-            .ifPresent(customerIdAttribute -> userAttributeTypes.add(customerIdAttribute));
+        userAttributeTypes.add(toAttributeType(CUSTOM_CUSTOMER_ID, user.getInstitution()));
         userAttributeTypes.add(toAttributeType(CUSTOM_APPLICATION, NVA));
         userAttributeTypes.add(createIdentifiersAttribute(userAttributes));
 
-        if (getAffiliation(userAttributes).contains(STAFF)) {
-            String applicationRoles = String.join(COMMA_DELIMITER, PUBLISHER);
-            logger.info("applicationRoles: " + applicationRoles);
-            userAttributeTypes.add(toAttributeType(
-                CUSTOM_APPLICATION_ROLES, applicationRoles
-                )
-            );
-        } else {
-            logger.info("No staff affiliation for publisher role");
-        }
+        String applicationRoles = toRolesString(user.getRoles());
+        logger.info("applicationRoles: " + applicationRoles);
+        userAttributeTypes.add(toAttributeType(
+            CUSTOM_APPLICATION_ROLES, applicationRoles
+            )
+        );
 
         return userAttributeTypes;
+    }
+
+    private String toRolesString(List<Role> roles) {
+        return roles
+            .stream()
+            .map(Role::getRolename)
+            .collect(Collectors.joining(COMMA_DELIMITER));
     }
 
     private void addUserToGroup(String userPoolId, String userName, String groupName) {
@@ -140,18 +198,6 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String,Obje
         String feideId = getStringValue(userAttributes, CUSTOM_FEIDE_ID);
         return toAttributeType(CUSTOM_IDENTIFIERS, FEIDE_PREFIX + feideId);
     }
-
-    private Optional<AttributeType> createCustomerIdAttribute(Map<String, Object> userAttributes) {
-        String orgNumber = getStringValue(userAttributes, CUSTOM_ORG_NUMBER);
-        String orgNumberNoPrefix = OrgNumberCleaner.removeCountryPrefix(orgNumber);
-
-        return customerApi.getCustomerId(orgNumberNoPrefix)
-            .stream()
-            .map(customerId -> toAttributeType(CUSTOM_CUSTOMER_ID, customerId))
-            .findFirst();
-    }
-
-
 
     private AttributeType toAttributeType(String name, String value) {
         AttributeType attributeType = new AttributeType();

@@ -13,7 +13,7 @@ import java.net.http.HttpResponse.BodyHandlers;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import no.unit.nva.cognito.model.CustomerResponse;
+import no.unit.nva.cognito.model.User;
 import nva.commons.utils.Environment;
 import nva.commons.utils.attempt.ConsumerWithException;
 import nva.commons.utils.attempt.Failure;
@@ -23,48 +23,49 @@ import org.apache.http.client.utils.URIBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class CustomerApiClient implements CustomerApi {
+public class UserApiClient implements UserApi {
 
-    public static final String PATH = "/customer/orgNumber/";
-    public static final String CUSTOMER_API_SCHEME = "CUSTOMER_API_SCHEME";
-    public static final String CUSTOMER_API_HOST = "CUSTOMER_API_HOST";
+    public static final String PATH = "/users/";
+    public static final String USER_API_SCHEME = "USER_API_SCHEME";
+    public static final String USER_API_HOST = "USER_API_HOST";
 
     private final ObjectMapper objectMapper;
     private final HttpClient httpClient;
-    private final String customerApiScheme;
-    private final String customerApiHost;
+    private final String userApiScheme;
+    private final String userApiHost;
 
-    private static final Logger logger = LoggerFactory.getLogger(CustomerApiClient.class);
+    private static final Logger logger = LoggerFactory.getLogger(UserApiClient.class);
 
     /**
-     * Constructor for CustomerApiClient.
+     * Constructor for UserApiClient.
      *
      * @param httpClient   httpClient
      * @param objectMapper objectMapper
      * @param environment  environment
      */
-    public CustomerApiClient(HttpClient httpClient, ObjectMapper objectMapper, Environment environment) {
+    public UserApiClient(HttpClient httpClient, ObjectMapper objectMapper, Environment environment) {
         this.httpClient = httpClient;
         this.objectMapper = objectMapper;
-        this.customerApiScheme = environment.readEnv(CUSTOMER_API_SCHEME);
-        this.customerApiHost = environment.readEnv(CUSTOMER_API_HOST);
+        this.userApiScheme = environment.readEnv(USER_API_SCHEME);
+        this.userApiHost = environment.readEnv(USER_API_HOST);
     }
 
     @Override
-    public Optional<String> getCustomerId(String orgNumber) {
-        logger.info("Requesting customer information for orgNumber: " + orgNumber);
-        return fetchCustomerInformation(orgNumber)
+    public Optional<User> getUser(String username) {
+        logger.info("Requesting user information for username: " + username);
+        return fetchUserInformation(username)
             .stream()
             .filter(responseIsSuccessful())
             .map(tryParsingCustomer())
-            .map(this::extractIdentifier)
             .findAny()
             .flatMap(this::getValueOrLogError);
     }
 
+    @Override
+    public void createUser(User user) {
+    }
 
-
-    private Optional<HttpResponse<String>> fetchCustomerInformation(String orgNumber) {
+    private Optional<HttpResponse<String>> fetchUserInformation(String orgNumber) {
         return Try.of(formUri(orgNumber))
             .map(URIBuilder::build)
             .map(this::buildHttpRequest)
@@ -72,44 +73,40 @@ public class CustomerApiClient implements CustomerApi {
             .toOptional(logResponseError());
     }
 
-    private Function<HttpResponse<String>, Try<CustomerResponse>> tryParsingCustomer() {
-        return attempt(this::parseCustomer);
+    private Function<HttpResponse<String>, Try<User>> tryParsingCustomer() {
+        return attempt(this::parseUser);
     }
 
     private Predicate<HttpResponse<String>> responseIsSuccessful() {
         return resp -> resp.statusCode() == HttpStatus.SC_OK;
     }
 
-    private Try<String> extractIdentifier(Try<CustomerResponse> effort) {
-        return effort.map(CustomerResponse::getIdentifier);
+    private Optional<User> getValueOrLogError(Try<User> valueTry) {
+        return valueTry.toOptional(logErrorParsingUserInformation());
     }
 
-    private Optional<String> getValueOrLogError(Try<String> valueTry) {
-        return valueTry.toOptional(logErrorParsingCustomerInformation());
-    }
-
-    private ConsumerWithException<Failure<String>, RuntimeException> logErrorParsingCustomerInformation() {
-        return failure -> logger.error("Error parsing customer information");
+    private ConsumerWithException<Failure<User>, RuntimeException> logErrorParsingUserInformation() {
+        return failure -> logger.error("Error parsing user information");
     }
 
     private ConsumerWithException<Failure<HttpResponse<String>>, RuntimeException> logResponseError() {
-        return failure -> logger.error("Error fetching customer information");
+        return failure -> logger.error("Error fetching user information");
     }
 
-    private CustomerResponse parseCustomer(HttpResponse<String> response)
+    private User parseUser(HttpResponse<String> response)
         throws JsonProcessingException {
-        return objectMapper.readValue(response.body(), CustomerResponse.class);
+        return objectMapper.readValue(response.body(), User.class);
     }
 
     private HttpResponse<String> sendHttpRequest(HttpRequest httpRequest) throws IOException, InterruptedException {
         return httpClient.send(httpRequest, BodyHandlers.ofString());
     }
 
-    private URIBuilder formUri(String orgNumber) {
+    private URIBuilder formUri(String username) {
         return new URIBuilder()
-            .setScheme(customerApiScheme)
-            .setHost(customerApiHost)
-            .setPath(PATH + orgNumber);
+            .setScheme(userApiScheme)
+            .setHost(userApiHost)
+            .setPath(PATH + username);
     }
 
     private HttpRequest buildHttpRequest(URI uri) {

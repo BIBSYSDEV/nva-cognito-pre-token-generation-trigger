@@ -76,6 +76,8 @@ Resources:
         Variables:
           CUSTOMER_API_SCHEME: https
           CUSTOMER_API_HOST: !Ref CustomDomain
+          USER_API_SCHEME: https
+          USER_API_HOST: !Ref CustomDomain
 
 Outputs:
   CognitoPostAuthenticationFunction:

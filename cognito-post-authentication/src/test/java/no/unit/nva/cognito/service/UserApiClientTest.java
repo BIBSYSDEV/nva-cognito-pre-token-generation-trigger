@@ -1,12 +1,14 @@
 package no.unit.nva.cognito.service;
 
 import static org.apache.http.HttpStatus.SC_OK;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.IOException;
 import java.net.http.HttpClient;
 import java.net.http.HttpResponse;
 import java.util.Collections;
@@ -25,7 +27,7 @@ public class UserApiClientTest {
     public static final String EXAMPLE_ORG = "example.org";
     public static final String GARBAGE_JSON = "{{}";
     public static final String USERNAME = "username";
-    public static final String INSTITUTION_ID = "instituion.id";
+    public static final String INSTITUTION_ID = "institution.id";
     public static final String CREATOR = "Creator";
 
     private ObjectMapper objectMapper;
@@ -49,7 +51,7 @@ public class UserApiClientTest {
     }
 
     @Test
-    public void test() throws Exception {
+    public void getUserReturnsUserOnValidUsername() throws Exception {
         when(httpResponse.body()).thenReturn(getValidJsonUser());
         when(httpResponse.statusCode()).thenReturn(SC_OK);
         when(httpClient.send(any(), any())).thenReturn(httpResponse);
@@ -57,6 +59,26 @@ public class UserApiClientTest {
         Optional<User> user = userApiClient.getUser(USERNAME);
 
         Assertions.assertTrue(user.isPresent());
+    }
+
+    @Test
+    public void getUserReturnsEmptyOptionalOnInvalidJsonResponse() throws IOException, InterruptedException {
+        when(httpResponse.body()).thenReturn(GARBAGE_JSON);
+        when(httpResponse.statusCode()).thenReturn(SC_OK);
+        when(httpClient.send(any(), any())).thenReturn(httpResponse);
+
+        Optional<User> user = userApiClient.getUser(USERNAME);
+
+        assertTrue(user.isEmpty());
+    }
+
+    @Test
+    public void getUserReturnsEmptyOptionalOnInvalidHttpResponse() throws IOException, InterruptedException {
+        when(httpClient.send(any(), any())).thenThrow(IOException.class);
+
+        Optional<User> user = userApiClient.getUser(USERNAME);
+
+        assertTrue(user.isEmpty());
     }
 
     public String getValidJsonUser() throws JsonProcessingException {

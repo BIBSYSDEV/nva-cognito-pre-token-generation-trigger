@@ -15,6 +15,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import no.unit.nva.cognito.model.User;
 import nva.commons.utils.Environment;
+import nva.commons.utils.JacocoGenerated;
 import nva.commons.utils.attempt.ConsumerWithException;
 import nva.commons.utils.attempt.Failure;
 import nva.commons.utils.attempt.Try;
@@ -62,6 +63,7 @@ public class UserApiClient implements UserApi {
     }
 
     @Override
+    @JacocoGenerated
     public void createUser(User user) {
     }
 

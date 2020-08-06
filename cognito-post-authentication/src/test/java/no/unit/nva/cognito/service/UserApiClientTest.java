@@ -1,5 +1,6 @@
 package no.unit.nva.cognito.service;
 
+import static org.apache.http.HttpStatus.SC_INTERNAL_SERVER_ERROR;
 import static org.apache.http.HttpStatus.SC_OK;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -16,6 +17,7 @@ import java.util.Optional;
 import no.unit.nva.cognito.model.Role;
 import no.unit.nva.cognito.model.User;
 import nva.commons.utils.Environment;
+import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -74,7 +76,8 @@ public class UserApiClientTest {
 
     @Test
     public void getUserReturnsEmptyOptionalOnInvalidHttpResponse() throws IOException, InterruptedException {
-        when(httpClient.send(any(), any())).thenThrow(IOException.class);
+        when(httpResponse.statusCode()).thenReturn(SC_INTERNAL_SERVER_ERROR);
+        when(httpClient.send(any(), any())).thenReturn(httpResponse);
 
         Optional<User> user = userApiClient.getUser(USERNAME);
 

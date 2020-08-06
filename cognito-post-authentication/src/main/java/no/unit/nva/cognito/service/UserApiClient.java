@@ -11,12 +11,11 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.util.Optional;
-import java.util.function.Function;
 import java.util.function.Predicate;
 import no.unit.nva.cognito.model.User;
 import nva.commons.utils.Environment;
 import nva.commons.utils.JacocoGenerated;
-import nva.commons.utils.attempt.ConsumerWithException;
+import nva.commons.utils.SingletonCollector;
 import nva.commons.utils.attempt.Failure;
 import nva.commons.utils.attempt.Try;
 import org.apache.http.HttpStatus;
@@ -57,9 +56,10 @@ public class UserApiClient implements UserApi {
         return fetchUserInformation(username)
             .stream()
             .filter(responseIsSuccessful())
-            .map(tryParsingCustomer())
-            .findAny()
-            .flatMap(this::getValueOrLogError);
+            .map(this::tryParsingUser)
+            .collect(SingletonCollector.tryCollect())
+            .flatMap(this::flattenNestedAttempts)
+            .toOptional(this::logErrorParsingUserInformation);
     }
 
     @Override
@@ -67,32 +67,32 @@ public class UserApiClient implements UserApi {
     public void createUser(User user) {
     }
 
+    private Try<User> flattenNestedAttempts(Try<User> attempt) {
+        return attempt;
+    }
+
     private Optional<HttpResponse<String>> fetchUserInformation(String orgNumber) {
-        return Try.of(formUri(orgNumber))
+        return attempt(() -> formUri(orgNumber))
             .map(URIBuilder::build)
             .map(this::buildHttpRequest)
             .map(this::sendHttpRequest)
-            .toOptional(logResponseError());
+            .toOptional(failure -> logResponseError(failure));
     }
 
-    private Function<HttpResponse<String>, Try<User>> tryParsingCustomer() {
-        return attempt(this::parseUser);
+    private Try<User> tryParsingUser(HttpResponse<String> response) {
+        return attempt(() -> parseUser(response));
     }
 
     private Predicate<HttpResponse<String>> responseIsSuccessful() {
         return resp -> resp.statusCode() == HttpStatus.SC_OK;
     }
 
-    private Optional<User> getValueOrLogError(Try<User> valueTry) {
-        return valueTry.toOptional(logErrorParsingUserInformation());
+    private void logErrorParsingUserInformation(Failure<User> failure) {
+        logger.error("Error parsing user information", failure.getException());
     }
 
-    private ConsumerWithException<Failure<User>, RuntimeException> logErrorParsingUserInformation() {
-        return failure -> logger.error("Error parsing user information");
-    }
-
-    private ConsumerWithException<Failure<HttpResponse<String>>, RuntimeException> logResponseError() {
-        return failure -> logger.error("Error fetching user information");
+    private void logResponseError(Failure<HttpResponse<String>> failure) {
+        logger.error("Error fetching user information", failure.getException());
     }
 
     private User parseUser(HttpResponse<String> response)

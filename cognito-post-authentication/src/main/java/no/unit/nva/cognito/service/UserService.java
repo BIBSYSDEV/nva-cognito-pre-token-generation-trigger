@@ -44,7 +44,7 @@ public class UserService {
      * @param roles         roles
      */
     public void updateUserGroups(String userPoolId, String userName, List<Role> roles) {
-        roles.stream().forEach(role -> addUserToGroup(userPoolId, userName, toRoleGroupName(role)));
+        roles.forEach(role -> addUserToGroup(userPoolId, userName, toRoleGroupName(role)));
     }
 
     /**

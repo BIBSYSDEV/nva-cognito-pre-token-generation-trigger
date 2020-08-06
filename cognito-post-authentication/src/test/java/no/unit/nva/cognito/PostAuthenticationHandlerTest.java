@@ -60,7 +60,7 @@ public class PostAuthenticationHandlerTest {
         prepareMocksWithExistingUser(SAMPLE_FEIDE_ID);
 
         Event requestEvent = createRequestEvent();
-        Event responseEvent = handler.handleRequest(requestEvent, mock(Context.class));
+        final Event responseEvent = handler.handleRequest(requestEvent, mock(Context.class));
 
         verify(userApi, times(0)).createUser(any());
         verify(awsCognitoIdentityProvider).adminAddUserToGroup(any());
@@ -76,7 +76,7 @@ public class PostAuthenticationHandlerTest {
         prepareMocksWithNoUser();
 
         Event requestEvent = createRequestEvent();
-        Event responseEvent = handler.handleRequest(requestEvent, mock(Context.class));
+        final Event responseEvent = handler.handleRequest(requestEvent, mock(Context.class));
 
         verify(userApi).createUser(any());
         verify(awsCognitoIdentityProvider).adminAddUserToGroup(any());

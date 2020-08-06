@@ -1,6 +1,10 @@
 package no.unit.nva.cognito.model;
 
+import com.fasterxml.jackson.annotation.JsonAnyGetter;
+import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.HashMap;
+import java.util.Map;
 
 public class Event {
 
@@ -10,8 +14,11 @@ public class Event {
     private String userName;
     @JsonProperty("request")
     private Request request;
+    @JsonAnySetter
+    private Map<String, Object> otherProperties;
 
     public Event() {
+        otherProperties = new HashMap<>();
     }
 
     public String getUserPoolId() {
@@ -36,5 +43,14 @@ public class Event {
 
     public void setRequest(Request request) {
         this.request = request;
+    }
+
+    @JsonAnyGetter
+    public Map<String, Object> getOtherProperties() {
+        return otherProperties;
+    }
+
+    public void setOtherProperties(Map<String, Object> otherProperties) {
+        this.otherProperties = otherProperties;
     }
 }

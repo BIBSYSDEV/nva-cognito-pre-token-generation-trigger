@@ -25,7 +25,7 @@ import nva.commons.utils.JacocoGenerated;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class PostAuthenticationHandler implements RequestHandler<Map<String,Object>, Map<String,Object>> {
+public class PostAuthenticationHandler implements RequestHandler<Event, Event> {
 
     public static final String CUSTOM_APPLICATION_ROLES = "custom:applicationRoles";
     public static final String CUSTOM_APPLICATION = "custom:application";
@@ -40,7 +40,6 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String,Obje
 
     private UserService userService;
     private CustomerApi customerApi;
-    private  ObjectMapper objectMapper;
 
     private static final Logger logger = LoggerFactory.getLogger(PostAuthenticationHandler.class);
 
@@ -69,17 +68,14 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String,Obje
     public PostAuthenticationHandler(UserService userService, CustomerApi customerApi) {
         this.userService = userService;
         this.customerApi = customerApi;
-        this.objectMapper = new ObjectMapper();
     }
 
     @Override
-    public Map<String,Object> handleRequest(Map<String,Object> event, Context context) {
-        Event requestEvent = objectMapper.convertValue(event, Event.class);
+    public Event handleRequest(Event event, Context context) {
+        String userPoolId = event.getUserPoolId();
+        String userName = event.getUserName();
 
-        String userPoolId = requestEvent.getUserPoolId();
-        String userName = requestEvent.getUserName();
-
-        UserAttributes userAttributes = requestEvent.getRequest().getUserAttributes();
+        UserAttributes userAttributes = event.getRequest().getUserAttributes();
 
         String feideId = userAttributes.getFeideId();
         String customerId = mapOrgNumberToCustomerId(removeCountryPrefix(userAttributes.getOrgNumber()));

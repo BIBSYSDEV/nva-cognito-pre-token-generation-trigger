@@ -10,9 +10,11 @@ import static org.mockito.Mockito.when;
 
 import com.amazonaws.services.cognitoidp.AWSCognitoIdentityProvider;
 import com.amazonaws.services.lambda.runtime.Context;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import no.unit.nva.cognito.model.Event;
+import no.unit.nva.cognito.model.Request;
+import no.unit.nva.cognito.model.UserAttributes;
 import no.unit.nva.cognito.service.CustomerApi;
 import no.unit.nva.cognito.service.UserApi;
 import no.unit.nva.cognito.service.UserService;
@@ -23,13 +25,6 @@ import org.junit.jupiter.api.Test;
 @SuppressWarnings("unchecked")
 public class PostAuthenticationHandlerTest {
 
-    public static final String REQUEST = "request";
-    public static final String USER_ATTRIBUTES = "userAttributes";
-    public static final String USER_NAME = "userName";
-    public static final String USER_POOL_ID = "userPoolId";
-    public static final String CUSTOM_FEIDE_ID = "custom:feideId";
-    public static final String CUSTOM_ORG_NUMBER = "custom:orgNumber";
-    public static final String CUSTOM_AFFILIATION = "custom:affiliation";
     public static final String SAMPLE_ORG_NUMBER = "1234567890";
     public static final String SAMPLE_AFFILIATION = "[member, employee, staff]";
     public static final String SAMPLE_FEIDE_ID = "feideId";
@@ -55,8 +50,8 @@ public class PostAuthenticationHandlerTest {
         UUID customerId = UUID.randomUUID();
         prepareMocksWithValidResponse(customerId);
 
-        Map<String, Object> requestEvent = createRequestEvent();
-        Map<String, Object> responseEvent = handler.handleRequest(requestEvent, mock(Context.class));
+        Event requestEvent = createRequestEvent();
+        Event responseEvent = handler.handleRequest(requestEvent, mock(Context.class));
 
         verify(awsCognitoIdentityProvider).adminAddUserToGroup(any());
         verify(awsCognitoIdentityProvider).adminUpdateUserAttributes(any());
@@ -68,10 +63,10 @@ public class PostAuthenticationHandlerTest {
     public void handleRequestThrowsExceptionOnMissingCustomer() {
         prepareMocksWithEmptyResponse();
 
-        Map<String, Object> requestEvent = createRequestEvent();
+        Event event = createRequestEvent();
 
         IllegalStateException exception = Assertions.assertThrows(IllegalStateException.class,
-            () -> handler.handleRequest(requestEvent, mock(Context.class)));
+            () -> handler.handleRequest(event, mock(Context.class)));
 
         Assertions.assertEquals(NOT_FOUND_ERROR_MESSAGE + SAMPLE_ORG_NUMBER, exception.getMessage());
     }
@@ -84,17 +79,20 @@ public class PostAuthenticationHandlerTest {
         when(customerApi.getCustomerId(anyString())).thenReturn(Optional.empty());
     }
 
-    private Map<String, Object> createRequestEvent() {
-        return Map.of(
-            USER_POOL_ID, "userPoolId",
-            USER_NAME, "userName",
-            REQUEST, Map.of(
-                USER_ATTRIBUTES, Map.of(
-                    CUSTOM_ORG_NUMBER, SAMPLE_ORG_NUMBER,
-                    CUSTOM_AFFILIATION, SAMPLE_AFFILIATION,
-                    CUSTOM_FEIDE_ID, SAMPLE_FEIDE_ID
-                )
-            )
-        );
+    private Event createRequestEvent() {
+        UserAttributes userAttributes = new UserAttributes();
+        userAttributes.setFeideId(SAMPLE_FEIDE_ID);
+        userAttributes.setOrgNumber(SAMPLE_ORG_NUMBER);
+        userAttributes.setAffiliation(SAMPLE_AFFILIATION);
+
+        Request request = new Request();
+        request.setUserAttributes(userAttributes);
+
+        Event event = new Event();
+        event.setUserPoolId("userPoolId");
+        event.setUserName("userName");
+        event.setRequest(request);
+
+        return event;
     }
 }

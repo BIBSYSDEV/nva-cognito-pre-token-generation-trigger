@@ -84,6 +84,15 @@ public class UserApiClientTest {
         assertTrue(user.isEmpty());
     }
 
+    @Test
+    public void getUserReturnsEmptyOptionalOnHttpError() throws IOException, InterruptedException {
+        when(httpClient.send(any(), any())).thenThrow(IOException.class);
+
+        Optional<User> user = userApiClient.getUser(USERNAME);
+
+        assertTrue(user.isEmpty());
+    }
+
     public String getValidJsonUser() throws JsonProcessingException {
         return objectMapper.writeValueAsString(createUser());
     }

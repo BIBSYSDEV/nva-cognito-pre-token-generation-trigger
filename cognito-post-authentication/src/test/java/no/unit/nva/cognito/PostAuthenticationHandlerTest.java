@@ -10,10 +10,13 @@ import static org.mockito.Mockito.when;
 
 import com.amazonaws.services.cognitoidp.AWSCognitoIdentityProvider;
 import com.amazonaws.services.lambda.runtime.Context;
+import java.util.Collections;
 import java.util.Optional;
 import java.util.UUID;
 import no.unit.nva.cognito.model.Event;
 import no.unit.nva.cognito.model.Request;
+import no.unit.nva.cognito.model.Role;
+import no.unit.nva.cognito.model.User;
 import no.unit.nva.cognito.model.UserAttributes;
 import no.unit.nva.cognito.service.CustomerApi;
 import no.unit.nva.cognito.service.UserApi;
@@ -46,9 +49,10 @@ public class PostAuthenticationHandlerTest {
     }
 
     @Test
-    public void handleRequestReturnsEventOnInput() {
+    public void handleRequestUpdatesUserPoolWhenCustomerAndUserIsFound() {
         UUID customerId = UUID.randomUUID();
-        prepareMocksWithValidResponse(customerId);
+        prepareMocksWithExistingCustomer(customerId);
+        prepareMocksWithExistingUser(SAMPLE_FEIDE_ID);
 
         Event requestEvent = createRequestEvent();
         Event responseEvent = handler.handleRequest(requestEvent, mock(Context.class));
@@ -60,8 +64,23 @@ public class PostAuthenticationHandlerTest {
     }
 
     @Test
-    public void handleRequestThrowsExceptionOnMissingCustomer() {
-        prepareMocksWithEmptyResponse();
+    public void handleRequestCreatesUserWhenUserIsNotFound() {
+        UUID customerId = UUID.randomUUID();
+        prepareMocksWithExistingCustomer(customerId);
+        prepareMocksWithNoUser();
+
+        Event requestEvent = createRequestEvent();
+        Event responseEvent = handler.handleRequest(requestEvent, mock(Context.class));
+
+        verify(awsCognitoIdentityProvider).adminAddUserToGroup(any());
+        verify(awsCognitoIdentityProvider).adminUpdateUserAttributes(any());
+
+        assertEquals(requestEvent, responseEvent);
+    }
+
+    @Test
+    public void handleRequestReturnsErrorWhenCustomerIsNotFound() {
+        prepareMocksWithNoCustomer();
 
         Event event = createRequestEvent();
 
@@ -71,11 +90,23 @@ public class PostAuthenticationHandlerTest {
         Assertions.assertEquals(NOT_FOUND_ERROR_MESSAGE + SAMPLE_ORG_NUMBER, exception.getMessage());
     }
 
-    private void prepareMocksWithValidResponse(UUID customerId) {
+    private void prepareMocksWithNoUser() {
+        when(userApi.getUser(anyString())).thenReturn(Optional.empty());
+    }
+
+    private void prepareMocksWithExistingUser(String sampleFeideId) {
+        User user = new User(
+            sampleFeideId,
+            "http://example.org/customer/123",
+            Collections.singletonList(new Role("Publisher")));
+        when(userApi.getUser(anyString())).thenReturn(Optional.of(user));
+    }
+
+    private void prepareMocksWithExistingCustomer(UUID customerId) {
         when(customerApi.getCustomerId(anyString())).thenReturn(Optional.of(customerId.toString()));
     }
 
-    private void prepareMocksWithEmptyResponse() {
+    private void prepareMocksWithNoCustomer() {
         when(customerApi.getCustomerId(anyString())).thenReturn(Optional.empty());
     }
 

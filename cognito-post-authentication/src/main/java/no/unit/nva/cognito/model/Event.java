@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.HashMap;
 import java.util.Map;
+import nva.commons.utils.JacocoGenerated;
 
 public class Event {
 
@@ -46,10 +47,12 @@ public class Event {
     }
 
     @JsonAnyGetter
+    @JacocoGenerated
     public Map<String, Object> getOtherProperties() {
         return otherProperties;
     }
 
+    @JacocoGenerated
     public void setOtherProperties(Map<String, Object> otherProperties) {
         this.otherProperties = otherProperties;
     }

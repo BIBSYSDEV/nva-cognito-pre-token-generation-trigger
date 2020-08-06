@@ -263,7 +263,7 @@ $RECYCLE.BIN/
 *.lnk
 
 ### Gradle ###
-functions/cognito-post-authentication/.gradle
+.gradle
 build/
 
 # Ignore Gradle GUI config

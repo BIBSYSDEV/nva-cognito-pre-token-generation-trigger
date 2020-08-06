@@ -13,7 +13,6 @@ import java.net.http.HttpResponse.BodyHandlers;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import no.unit.nva.cognito.PostAuthenticationHandler;
 import no.unit.nva.cognito.model.CustomerResponse;
 import nva.commons.utils.Environment;
 import nva.commons.utils.attempt.ConsumerWithException;
@@ -35,15 +34,8 @@ public class CustomerApiClient implements CustomerApi {
     private final String customerApiScheme;
     private final String customerApiHost;
 
-    private static final Logger logger = LoggerFactory.getLogger(PostAuthenticationHandler.class);
+    private static final Logger logger = LoggerFactory.getLogger(CustomerApiClient.class);
 
-    /**
-     * Constructor for CustomerApiClient.
-     *
-     * @param httpClient   httpClient
-     * @param objectMapper objectMapper
-     * @param environment  environment
-     */
     public CustomerApiClient(HttpClient httpClient, ObjectMapper objectMapper, Environment environment) {
         this.httpClient = httpClient;
         this.objectMapper = objectMapper;
@@ -62,6 +54,8 @@ public class CustomerApiClient implements CustomerApi {
             .findAny()
             .flatMap(this::getValueOrLogError);
     }
+
+
 
     private Optional<HttpResponse<String>> fetchCustomerInformation(String orgNumber) {
         return Try.of(formUri(orgNumber))

@@ -1,13 +1,6 @@
 package no.unit.nva.cognito;
 
-import static no.unit.nva.cognito.PostAuthenticationHandler.CUSTOM_AFFILIATION;
-import static no.unit.nva.cognito.PostAuthenticationHandler.CUSTOM_FEIDE_ID;
-import static no.unit.nva.cognito.PostAuthenticationHandler.CUSTOM_ORG_NUMBER;
-import static no.unit.nva.cognito.PostAuthenticationHandler.NOT_FOUND_EXCEPTION;
-import static no.unit.nva.cognito.PostAuthenticationHandler.REQUEST;
-import static no.unit.nva.cognito.PostAuthenticationHandler.USER_ATTRIBUTES;
-import static no.unit.nva.cognito.PostAuthenticationHandler.USER_NAME;
-import static no.unit.nva.cognito.PostAuthenticationHandler.USER_POOL_ID;
+import static no.unit.nva.cognito.PostAuthenticationHandler.NOT_FOUND_ERROR_MESSAGE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -30,9 +23,17 @@ import org.junit.jupiter.api.Test;
 @SuppressWarnings("unchecked")
 public class PostAuthenticationHandlerTest {
 
+    public static final String REQUEST = "request";
+    public static final String USER_ATTRIBUTES = "userAttributes";
+    public static final String USER_NAME = "userName";
+    public static final String USER_POOL_ID = "userPoolId";
+    public static final String CUSTOM_FEIDE_ID = "custom:feideId";
+    public static final String CUSTOM_ORG_NUMBER = "custom:orgNumber";
+    public static final String CUSTOM_AFFILIATION = "custom:affiliation";
     public static final String SAMPLE_ORG_NUMBER = "1234567890";
     public static final String SAMPLE_AFFILIATION = "[member, employee, staff]";
     public static final String SAMPLE_FEIDE_ID = "feideId";
+
     private CustomerApi customerApi;
     private UserApi userApi;
     private PostAuthenticationHandler handler;
@@ -72,7 +73,7 @@ public class PostAuthenticationHandlerTest {
         IllegalStateException exception = Assertions.assertThrows(IllegalStateException.class,
             () -> handler.handleRequest(requestEvent, mock(Context.class)));
 
-        Assertions.assertEquals(NOT_FOUND_EXCEPTION + SAMPLE_ORG_NUMBER, exception.getMessage());
+        Assertions.assertEquals(NOT_FOUND_ERROR_MESSAGE + SAMPLE_ORG_NUMBER, exception.getMessage());
     }
 
     private void prepareMocksWithValidResponse(UUID customerId) {

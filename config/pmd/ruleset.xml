@@ -37,6 +37,7 @@
     <exclude name="TooManyStaticImports"/>
     <exclude name="ClassNamingConventions"/>
     <exclude name="UnnecessaryConstructor"/>
+    <exclude name="ShortClassName"/>
 
     <!--<exclude name="BeanMembersShouldSerialize"/>-->
 

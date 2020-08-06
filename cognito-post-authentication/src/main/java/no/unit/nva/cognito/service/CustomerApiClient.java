@@ -36,13 +36,6 @@ public class CustomerApiClient implements CustomerApi {
 
     private static final Logger logger = LoggerFactory.getLogger(CustomerApiClient.class);
 
-    /**
-     * Constructor for CustomerApiClient.
-     *
-     * @param httpClient   httpClient
-     * @param objectMapper objectMapper
-     * @param environment  environment
-     */
     public CustomerApiClient(HttpClient httpClient, ObjectMapper objectMapper, Environment environment) {
         this.httpClient = httpClient;
         this.objectMapper = objectMapper;

@@ -11,14 +11,7 @@ public class User {
     private final String username;
     private final String institution;
     private final List<Role> roles;
-
-    /**
-     * Constructor for User.
-     *
-     * @param username  username (feideId)
-     * @param institution   customer institution id
-     * @param roles roles
-     */
+    
     @JsonCreator
     public User(@JsonProperty("username") String username,
                 @JsonProperty("institution") String institution,

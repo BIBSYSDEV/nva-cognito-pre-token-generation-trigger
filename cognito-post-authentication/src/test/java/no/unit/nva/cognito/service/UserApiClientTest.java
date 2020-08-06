@@ -2,6 +2,8 @@ package no.unit.nva.cognito.service;
 
 import static org.apache.http.HttpStatus.SC_INTERNAL_SERVER_ERROR;
 import static org.apache.http.HttpStatus.SC_OK;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -17,7 +19,11 @@ import java.util.Optional;
 import no.unit.nva.cognito.model.Role;
 import no.unit.nva.cognito.model.User;
 import nva.commons.utils.Environment;
+import nva.commons.utils.log.LogUtils;
+import nva.commons.utils.log.TestAppender;
 import org.apache.http.HttpStatus;
+import org.hamcrest.MatcherAssert;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -65,6 +71,7 @@ public class UserApiClientTest {
 
     @Test
     public void getUserReturnsEmptyOptionalOnInvalidJsonResponse() throws IOException, InterruptedException {
+        TestAppender appender = LogUtils.getTestingAppender(UserApiClient.class);
         when(httpResponse.body()).thenReturn(GARBAGE_JSON);
         when(httpResponse.statusCode()).thenReturn(SC_OK);
         when(httpClient.send(any(), any())).thenReturn(httpResponse);
@@ -72,24 +79,38 @@ public class UserApiClientTest {
         Optional<User> user = userApiClient.getUser(USERNAME);
 
         assertTrue(user.isEmpty());
+
+        String messages = appender.getMessages();
+        assertThat(messages, containsString(UserApiClient.ERROR_PARSING_USER_INFORMATION));
+        assertTrue(user.isEmpty());
     }
 
     @Test
     public void getUserReturnsEmptyOptionalOnInvalidHttpResponse() throws IOException, InterruptedException {
+        TestAppender appender = LogUtils.getTestingAppender(UserApiClient.class);
         when(httpResponse.statusCode()).thenReturn(SC_INTERNAL_SERVER_ERROR);
         when(httpClient.send(any(), any())).thenReturn(httpResponse);
 
         Optional<User> user = userApiClient.getUser(USERNAME);
 
         assertTrue(user.isEmpty());
+
+        String messages = appender.getMessages();
+        assertThat(messages, containsString(UserApiClient.ERROR_PARSING_USER_INFORMATION));
+        assertTrue(user.isEmpty());
     }
 
     @Test
     public void getUserReturnsEmptyOptionalOnHttpError() throws IOException, InterruptedException {
+        TestAppender appender = LogUtils.getTestingAppender(UserApiClient.class);
         when(httpClient.send(any(), any())).thenThrow(IOException.class);
 
         Optional<User> user = userApiClient.getUser(USERNAME);
 
+        assertTrue(user.isEmpty());
+
+        String messages = appender.getMessages();
+        assertThat(messages, containsString(UserApiClient.ERROR_PARSING_USER_INFORMATION));
         assertTrue(user.isEmpty());
     }
 

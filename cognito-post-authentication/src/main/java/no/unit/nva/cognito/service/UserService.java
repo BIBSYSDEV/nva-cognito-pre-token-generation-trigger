@@ -19,17 +19,10 @@ public class UserService {
     public static final String PUBLISHER = "Publisher";
     public static final String STAFF = "staff";
 
-
     public static final String ROLE_GROUP_TEMPLATE = "%sGroup";
 
     private static final Logger logger = LoggerFactory.getLogger(UserService.class);
 
-    /**
-     * Constructor for UserPoolService.
-     *
-     * @param userApi   userApi
-     * @param awsCognitoIdentityProvider    awsCognitoIdentityProvider
-     */
     public UserService(UserApi userApi,
                        AWSCognitoIdentityProvider awsCognitoIdentityProvider) {
         this.userApi = userApi;

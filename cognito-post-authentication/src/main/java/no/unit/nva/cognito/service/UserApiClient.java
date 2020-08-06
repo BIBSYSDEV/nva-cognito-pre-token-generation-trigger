@@ -28,6 +28,8 @@ public class UserApiClient implements UserApi {
     public static final String PATH = "/users/";
     public static final String USER_API_SCHEME = "USER_API_SCHEME";
     public static final String USER_API_HOST = "USER_API_HOST";
+    public static final String ERROR_PARSING_USER_INFORMATION = "Error parsing user information";
+    public static final String ERROR_FETCHING_USER_INFORMATION = "Error fetching user information";
 
     private final ObjectMapper objectMapper;
     private final HttpClient httpClient;
@@ -36,13 +38,6 @@ public class UserApiClient implements UserApi {
 
     private static final Logger logger = LoggerFactory.getLogger(UserApiClient.class);
 
-    /**
-     * Constructor for UserApiClient.
-     *
-     * @param httpClient   httpClient
-     * @param objectMapper objectMapper
-     * @param environment  environment
-     */
     public UserApiClient(HttpClient httpClient, ObjectMapper objectMapper, Environment environment) {
         this.httpClient = httpClient;
         this.objectMapper = objectMapper;
@@ -88,11 +83,11 @@ public class UserApiClient implements UserApi {
     }
 
     private void logErrorParsingUserInformation(Failure<User> failure) {
-        logger.error("Error parsing user information", failure.getException());
+        logger.error(ERROR_PARSING_USER_INFORMATION, failure.getException());
     }
 
     private void logResponseError(Failure<HttpResponse<String>> failure) {
-        logger.error("Error fetching user information", failure.getException());
+        logger.error(ERROR_FETCHING_USER_INFORMATION, failure.getException());
     }
 
     private User parseUser(HttpResponse<String> response)

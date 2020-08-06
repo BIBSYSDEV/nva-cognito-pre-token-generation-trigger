@@ -42,31 +42,27 @@ public class PostAuthenticationHandler implements RequestHandler<Event, Event> {
 
     private static final Logger logger = LoggerFactory.getLogger(PostAuthenticationHandler.class);
 
-
-    /**
-     * Default constructor for PostAuthenticationHandler.
-     */
     @JacocoGenerated
     public PostAuthenticationHandler() {
-        this(
-            new UserService(
-                new UserApiClient(HttpClient.newHttpClient(), new ObjectMapper(), new Environment()),
-                AWSCognitoIdentityProviderClient.builder().build()
-            ),
-            new CustomerApiClient(HttpClient.newHttpClient(), new ObjectMapper(), new Environment())
-        );
-
+        this(newUserService(), newCustomerApiClient());
     }
 
-    /**
-     * Constructor for PostAuthenticationHandler.
-     *
-     * @param userService   userService
-     * @param customerApi   customerApi
-     */
     public PostAuthenticationHandler(UserService userService, CustomerApi customerApi) {
         this.userService = userService;
         this.customerApi = customerApi;
+    }
+
+    @JacocoGenerated
+    private static CustomerApiClient newCustomerApiClient() {
+        return new CustomerApiClient(HttpClient.newHttpClient(), new ObjectMapper(), new Environment());
+    }
+
+    @JacocoGenerated
+    private static UserService newUserService() {
+        return new UserService(
+            new UserApiClient(HttpClient.newHttpClient(), new ObjectMapper(), new Environment()),
+            AWSCognitoIdentityProviderClient.builder().build()
+        );
     }
 
     @Override
@@ -76,11 +72,7 @@ public class PostAuthenticationHandler implements RequestHandler<Event, Event> {
 
         UserAttributes userAttributes = event.getRequest().getUserAttributes();
 
-        String feideId = userAttributes.getFeideId();
-        String customerId = mapOrgNumberToCustomerId(removeCountryPrefix(userAttributes.getOrgNumber()));
-        String affiliation = userAttributes.getAffiliation();
-
-        User user = getUserFromCatalogueOrAddUser(feideId, customerId, affiliation);
+        User user = getUserFromCatalogueOrAddUser(userAttributes);
 
         updateUserDetailsInUserPool(userPoolId, userName, userAttributes, user);
         updateUserGroupsInUserPool(userPoolId, userName, user);
@@ -104,7 +96,10 @@ public class PostAuthenticationHandler implements RequestHandler<Event, Event> {
             createUserAttributes(userAttributes, user));
     }
 
-    private User getUserFromCatalogueOrAddUser(String feideId, String customerId, String affiliation) {
+    private User getUserFromCatalogueOrAddUser(UserAttributes userAttributes) {
+        String feideId = userAttributes.getFeideId();
+        String customerId = mapOrgNumberToCustomerId(removeCountryPrefix(userAttributes.getOrgNumber()));
+        String affiliation = userAttributes.getAffiliation();
         return userService.getOrCreateUser(feideId, customerId, affiliation);
     }
 

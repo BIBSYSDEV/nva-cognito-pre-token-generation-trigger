@@ -67,7 +67,7 @@ Resources:
   PostAuthenticationTrigger:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: functions/cognito-post-authentication
+      CodeUri: cognito-post-authentication
       Handler: no.unit.nva.cognito.PostAuthenticationHandler::handleRequest
       Runtime: java11
       Role: !GetAtt TriggerExecutionRole.Arn

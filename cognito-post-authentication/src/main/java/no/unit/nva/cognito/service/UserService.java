@@ -58,7 +58,7 @@ public class UserService {
     public User getOrCreateUser(String feideId, String customerId, String affiliation) {
         return userApi
             .getUser(feideId)
-            .orElse(createUser(feideId, customerId, affiliation));
+            .orElseGet(() -> createUser(feideId, customerId, affiliation));
     }
 
     /**

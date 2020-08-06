@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -31,9 +32,12 @@ public class PostAuthenticationHandlerTest {
     public static final String SAMPLE_ORG_NUMBER = "1234567890";
     public static final String SAMPLE_AFFILIATION = "[member, employee, staff]";
     public static final String SAMPLE_FEIDE_ID = "feideId";
+    public static final String SAMPLE_CUSTOMER_ID = "http://example.org/customer/123";
+    public static final String PUBLISHER = "Publisher";
 
     private CustomerApi customerApi;
     private UserApi userApi;
+    private UserService userService;
     private PostAuthenticationHandler handler;
     private AWSCognitoIdentityProvider awsCognitoIdentityProvider;
 
@@ -45,11 +49,12 @@ public class PostAuthenticationHandlerTest {
         customerApi = mock(CustomerApi.class);
         userApi = mock(UserApi.class);
         awsCognitoIdentityProvider = mock(AWSCognitoIdentityProvider.class);
-        handler = new PostAuthenticationHandler(new UserService(userApi, awsCognitoIdentityProvider), customerApi);
+        userService = new UserService(userApi, awsCognitoIdentityProvider);
+        handler = new PostAuthenticationHandler(userService, customerApi);
     }
 
     @Test
-    public void handleRequestUpdatesUserPoolWhenCustomerAndUserIsFound() {
+    public void handleRequestUpdatesUserPoolWithExistingUserWhenUserIsFound() {
         UUID customerId = UUID.randomUUID();
         prepareMocksWithExistingCustomer(customerId);
         prepareMocksWithExistingUser(SAMPLE_FEIDE_ID);
@@ -57,6 +62,7 @@ public class PostAuthenticationHandlerTest {
         Event requestEvent = createRequestEvent();
         Event responseEvent = handler.handleRequest(requestEvent, mock(Context.class));
 
+        verify(userApi, times(0)).createUser(any());
         verify(awsCognitoIdentityProvider).adminAddUserToGroup(any());
         verify(awsCognitoIdentityProvider).adminUpdateUserAttributes(any());
 
@@ -64,7 +70,7 @@ public class PostAuthenticationHandlerTest {
     }
 
     @Test
-    public void handleRequestCreatesUserWhenUserIsNotFound() {
+    public void handleRequestUpdatesUserPoolWithNewUserWhenUserIsNotFound() {
         UUID customerId = UUID.randomUUID();
         prepareMocksWithExistingCustomer(customerId);
         prepareMocksWithNoUser();
@@ -72,6 +78,7 @@ public class PostAuthenticationHandlerTest {
         Event requestEvent = createRequestEvent();
         Event responseEvent = handler.handleRequest(requestEvent, mock(Context.class));
 
+        verify(userApi).createUser(any());
         verify(awsCognitoIdentityProvider).adminAddUserToGroup(any());
         verify(awsCognitoIdentityProvider).adminUpdateUserAttributes(any());
 
@@ -95,11 +102,15 @@ public class PostAuthenticationHandlerTest {
     }
 
     private void prepareMocksWithExistingUser(String sampleFeideId) {
-        User user = new User(
-            sampleFeideId,
-            "http://example.org/customer/123",
-            Collections.singletonList(new Role("Publisher")));
+        User user = createUser(sampleFeideId);
         when(userApi.getUser(anyString())).thenReturn(Optional.of(user));
+    }
+
+    private User createUser(String sampleFeideId) {
+        return new User(
+            sampleFeideId,
+            SAMPLE_CUSTOMER_ID,
+            Collections.singletonList(new Role(PUBLISHER)));
     }
 
     private void prepareMocksWithExistingCustomer(UUID customerId) {

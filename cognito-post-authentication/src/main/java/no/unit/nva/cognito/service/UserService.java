@@ -94,8 +94,9 @@ public class UserService {
     private User createUser(String feideId, String customerId, String affiliation) {
         List<Role> roles = createRoles(affiliation);
         User user = new User(feideId, customerId, roles);
-        return userApi.createUser(user)
+        userApi.createUser(user)
             .orElseThrow(() -> new IllegalStateException(USER_CREATION_ERROR_MESSAGE + user.getUsername()));
+        return user;
     }
 
     private List<Role> createRoles(String affiliation) {

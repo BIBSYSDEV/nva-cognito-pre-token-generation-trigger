@@ -34,6 +34,8 @@ public class PostAuthenticationHandlerTest {
     public static final String SAMPLE_FEIDE_ID = "feideId";
     public static final String SAMPLE_CUSTOMER_ID = "http://example.org/customer/123";
     public static final String PUBLISHER = "Publisher";
+    public static final String SAMPLE_USER_POOL_ID = "userPoolId";
+    public static final String SAMPLE_USER_NAME = "userName";
 
     private CustomerApi customerApi;
     private UserApi userApi;
@@ -57,7 +59,7 @@ public class PostAuthenticationHandlerTest {
     public void handleRequestUpdatesUserPoolWithExistingUserWhenUserIsFound() {
         UUID customerId = UUID.randomUUID();
         prepareMocksWithExistingCustomer(customerId);
-        prepareMocksWithExistingUser(SAMPLE_FEIDE_ID);
+        prepareMocksWithExistingUser();
 
         Event requestEvent = createRequestEvent();
         final Event responseEvent = handler.handleRequest(requestEvent, mock(Context.class));
@@ -74,6 +76,7 @@ public class PostAuthenticationHandlerTest {
         UUID customerId = UUID.randomUUID();
         prepareMocksWithExistingCustomer(customerId);
         prepareMocksWithNoUser();
+        prepareMocksWithUserCreated();
 
         Event requestEvent = createRequestEvent();
         final Event responseEvent = handler.handleRequest(requestEvent, mock(Context.class));
@@ -97,18 +100,38 @@ public class PostAuthenticationHandlerTest {
         Assertions.assertEquals(NOT_FOUND_ERROR_MESSAGE + SAMPLE_ORG_NUMBER, exception.getMessage());
     }
 
+    @Test
+    public void handleRequestReturnsErrorWhenCustomerIsCreated() {
+        prepareMocksWithExistingCustomer(UUID.randomUUID());
+        prepareMocksWithNoUserCreated();
+
+        Event event = createRequestEvent();
+
+        IllegalStateException exception = Assertions.assertThrows(IllegalStateException.class,
+            () -> handler.handleRequest(event, mock(Context.class)));
+
+        Assertions.assertEquals(UserService.USER_CREATION_ERROR_MESSAGE + SAMPLE_FEIDE_ID, exception.getMessage());
+    }
+
+    private void prepareMocksWithUserCreated() {
+        when(userApi.createUser(any())).thenReturn(Optional.of(createUser()));
+    }
+
+    private void prepareMocksWithNoUserCreated() {
+        when(userApi.createUser(any())).thenReturn(Optional.empty());
+    }
+
     private void prepareMocksWithNoUser() {
         when(userApi.getUser(anyString())).thenReturn(Optional.empty());
     }
 
-    private void prepareMocksWithExistingUser(String sampleFeideId) {
-        User user = createUser(sampleFeideId);
-        when(userApi.getUser(anyString())).thenReturn(Optional.of(user));
+    private void prepareMocksWithExistingUser() {
+        when(userApi.getUser(anyString())).thenReturn(Optional.of(createUser()));
     }
 
-    private User createUser(String sampleFeideId) {
+    private User createUser() {
         return new User(
-            sampleFeideId,
+            SAMPLE_FEIDE_ID,
             SAMPLE_CUSTOMER_ID,
             Collections.singletonList(new Role(PUBLISHER)));
     }
@@ -131,8 +154,8 @@ public class PostAuthenticationHandlerTest {
         request.setUserAttributes(userAttributes);
 
         Event event = new Event();
-        event.setUserPoolId("userPoolId");
-        event.setUserName("userName");
+        event.setUserPoolId(SAMPLE_USER_POOL_ID);
+        event.setUserName(SAMPLE_USER_NAME);
         event.setRequest(request);
 
         return event;

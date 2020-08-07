@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 
 public class UserService {
 
+    public static final String USER_CREATION_ERROR_MESSAGE = "Error creating user in user catalogue: ";
     private final UserApi userApi;
     private final AWSCognitoIdentityProvider awsCognitoIdentityProvider;
 
@@ -93,8 +94,8 @@ public class UserService {
     private User createUser(String feideId, String customerId, String affiliation) {
         List<Role> roles = createRoles(affiliation);
         User user = new User(feideId, customerId, roles);
-        userApi.createUser(user);
-        return user;
+        return userApi.createUser(user)
+            .orElseThrow(() -> new IllegalStateException(USER_CREATION_ERROR_MESSAGE + user.getUsername()));
     }
 
     private List<Role> createRoles(String affiliation) {

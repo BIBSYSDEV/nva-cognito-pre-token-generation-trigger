@@ -21,9 +21,6 @@ import no.unit.nva.cognito.model.User;
 import nva.commons.utils.Environment;
 import nva.commons.utils.log.LogUtils;
 import nva.commons.utils.log.TestAppender;
-import org.apache.http.HttpStatus;
-import org.hamcrest.MatcherAssert;
-import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,11 +28,11 @@ import org.junit.jupiter.api.Test;
 @SuppressWarnings("unchecked")
 public class UserApiClientTest {
 
-    public static final String HTTP = "http";
-    public static final String EXAMPLE_ORG = "example.org";
+    public static final String SAMPLE_SCHEME = "http";
+    public static final String SAMPLE_HOST = "example.org";
     public static final String GARBAGE_JSON = "{{}";
-    public static final String USERNAME = "username";
-    public static final String INSTITUTION_ID = "institution.id";
+    public static final String SAMPLE_USERNAME = "username";
+    public static final String SAMPLE_INSTITUTION_ID = "institution.id";
     public static final String CREATOR = "Creator";
 
     private ObjectMapper objectMapper;
@@ -50,8 +47,8 @@ public class UserApiClientTest {
     public void init() {
         objectMapper = new ObjectMapper();
         Environment environment = mock(Environment.class);
-        when(environment.readEnv(UserApiClient.USER_API_SCHEME)).thenReturn(HTTP);
-        when(environment.readEnv(UserApiClient.USER_API_HOST)).thenReturn(EXAMPLE_ORG);
+        when(environment.readEnv(UserApiClient.USER_API_SCHEME)).thenReturn(SAMPLE_SCHEME);
+        when(environment.readEnv(UserApiClient.USER_API_HOST)).thenReturn(SAMPLE_HOST);
         httpClient = mock(HttpClient.class);
         httpResponse = mock(HttpResponse.class);
 
@@ -64,19 +61,19 @@ public class UserApiClientTest {
         when(httpResponse.statusCode()).thenReturn(SC_OK);
         when(httpClient.send(any(), any())).thenReturn(httpResponse);
 
-        Optional<User> user = userApiClient.getUser(USERNAME);
+        Optional<User> user = userApiClient.getUser(SAMPLE_USERNAME);
 
         Assertions.assertTrue(user.isPresent());
     }
 
     @Test
     public void getUserReturnsEmptyOptionalOnInvalidJsonResponse() throws IOException, InterruptedException {
-        TestAppender appender = LogUtils.getTestingAppender(UserApiClient.class);
+        final TestAppender appender = LogUtils.getTestingAppender(UserApiClient.class);
         when(httpResponse.body()).thenReturn(GARBAGE_JSON);
         when(httpResponse.statusCode()).thenReturn(SC_OK);
         when(httpClient.send(any(), any())).thenReturn(httpResponse);
 
-        Optional<User> user = userApiClient.getUser(USERNAME);
+        Optional<User> user = userApiClient.getUser(SAMPLE_USERNAME);
 
         assertTrue(user.isEmpty());
 
@@ -87,11 +84,11 @@ public class UserApiClientTest {
 
     @Test
     public void getUserReturnsEmptyOptionalOnInvalidHttpResponse() throws IOException, InterruptedException {
-        TestAppender appender = LogUtils.getTestingAppender(UserApiClient.class);
+        final TestAppender appender = LogUtils.getTestingAppender(UserApiClient.class);
         when(httpResponse.statusCode()).thenReturn(SC_INTERNAL_SERVER_ERROR);
         when(httpClient.send(any(), any())).thenReturn(httpResponse);
 
-        Optional<User> user = userApiClient.getUser(USERNAME);
+        Optional<User> user = userApiClient.getUser(SAMPLE_USERNAME);
 
         assertTrue(user.isEmpty());
 
@@ -102,10 +99,10 @@ public class UserApiClientTest {
 
     @Test
     public void getUserReturnsEmptyOptionalOnHttpError() throws IOException, InterruptedException {
-        TestAppender appender = LogUtils.getTestingAppender(UserApiClient.class);
+        final TestAppender appender = LogUtils.getTestingAppender(UserApiClient.class);
         when(httpClient.send(any(), any())).thenThrow(IOException.class);
 
-        Optional<User> user = userApiClient.getUser(USERNAME);
+        Optional<User> user = userApiClient.getUser(SAMPLE_USERNAME);
 
         assertTrue(user.isEmpty());
 
@@ -114,14 +111,43 @@ public class UserApiClientTest {
         assertTrue(user.isEmpty());
     }
 
+    @Test
+    public void createUserReturnsCreatedUserOnSuccess() throws IOException, InterruptedException {
+        when(httpResponse.body()).thenReturn(getValidJsonUser());
+        when(httpResponse.statusCode()).thenReturn(SC_OK);
+        when(httpClient.send(any(), any())).thenReturn(httpResponse);
+
+        User requestUser = createUser();
+
+        Optional<User> responseUser = userApiClient.createUser(requestUser);
+
+        Assertions.assertTrue(responseUser.isPresent());
+    }
+
+    @Test
+    public void createUserReturnsErrorOnFailure() throws IOException, InterruptedException {
+        final TestAppender appender = LogUtils.getTestingAppender(UserApiClient.class);
+        when(httpClient.send(any(), any())).thenThrow(IOException.class);
+
+        User requestUser = createUser();
+
+        Optional<User> responseUser = userApiClient.createUser(requestUser);
+
+        assertTrue(responseUser.isEmpty());
+
+        String messages = appender.getMessages();
+        assertThat(messages, containsString(UserApiClient.ERROR_PARSING_USER_INFORMATION));
+        assertTrue(responseUser.isEmpty());
+    }
+
     public String getValidJsonUser() throws JsonProcessingException {
         return objectMapper.writeValueAsString(createUser());
     }
 
     private User createUser() {
         return new User(
-            USERNAME,
-            INSTITUTION_ID, Collections.singletonList(new Role(CREATOR))
+            SAMPLE_USERNAME,
+            SAMPLE_INSTITUTION_ID, Collections.singletonList(new Role(CREATOR))
         );
     }
 }

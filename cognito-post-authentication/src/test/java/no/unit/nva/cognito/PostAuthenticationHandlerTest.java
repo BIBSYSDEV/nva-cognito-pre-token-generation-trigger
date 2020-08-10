@@ -13,7 +13,6 @@ import com.amazonaws.services.lambda.runtime.Context;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 import no.unit.nva.cognito.model.Event;
 import no.unit.nva.cognito.model.Request;
 import no.unit.nva.cognito.model.Role;
@@ -21,6 +20,7 @@ import no.unit.nva.cognito.model.User;
 import no.unit.nva.cognito.model.UserAttributes;
 import no.unit.nva.cognito.service.CustomerApi;
 import no.unit.nva.cognito.service.UserApi;
+import no.unit.nva.cognito.service.UserApiTestClient;
 import no.unit.nva.cognito.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -47,71 +47,78 @@ public class PostAuthenticationHandlerTest {
     @BeforeEach
     public void init() {
         customerApi = mock(CustomerApi.class);
-        userApi = mock(UserApi.class);
+        userApi = new UserApiTestClient();
         awsCognitoIdentityProvider = mock(AWSCognitoIdentityProvider.class);
         userService = new UserService(userApi, awsCognitoIdentityProvider);
         handler = new PostAuthenticationHandler(userService, customerApi);
     }
 
     @Test
-    public void handleRequestUpdatesUserPoolWithExistingUserWhenUserIsFound() {
+    public void handleRequestUsesExistingUserWhenUserIsFound() {
         prepareMocksWithExistingCustomer();
         prepareMocksWithExistingUser();
 
         Event requestEvent = createRequestEvent();
         final Event responseEvent = handler.handleRequest(requestEvent, mock(Context.class));
 
-        verify(userApi, times(0)).createUser(any());
         verify(awsCognitoIdentityProvider, times(2)).adminAddUserToGroup(any());
         verify(awsCognitoIdentityProvider).adminUpdateUserAttributes(any());
 
+        assertEquals(userApi.getUser(SAMPLE_FEIDE_ID).get(), createUserWithCreatorRole());
         assertEquals(requestEvent, responseEvent);
     }
 
     @Test
-    public void handleRequestUpdatesUserPoolWithUserWhenNoCustomerIsFound() {
+    public void handleRequestCreatesUserWithUserRoleWhenNoCustomerIsFound() {
         prepareMocksWithNoCustomer();
         prepareMocksWithNoUser();
 
         Event requestEvent = createRequestEvent();
         final Event responseEvent = handler.handleRequest(requestEvent, mock(Context.class));
 
-        verify(userApi).createUser(any());
         verify(awsCognitoIdentityProvider).adminAddUserToGroup(any());
         verify(awsCognitoIdentityProvider).adminUpdateUserAttributes(any());
 
+        assertEquals(userApi.getUser(SAMPLE_FEIDE_ID).get(), createUserWithOnlyUserRole());
         assertEquals(requestEvent, responseEvent);
     }
 
     @Test
-    public void handleRequestUpdatesUserPoolWithCreatorUserWhenUserIsNotFound() {
+    public void handleRequestCreatesUserWithCreatorRoleForStaffUser() {
         prepareMocksWithExistingCustomer();
         prepareMocksWithNoUser();
 
         Event requestEvent = createRequestEvent();
         final Event responseEvent = handler.handleRequest(requestEvent, mock(Context.class));
 
-        verify(userApi).createUser(any());
         verify(awsCognitoIdentityProvider, times(2)).adminAddUserToGroup(any());
         verify(awsCognitoIdentityProvider).adminUpdateUserAttributes(any());
 
+        assertEquals(userApi.getUser(SAMPLE_FEIDE_ID).get(), createUserWithCreatorRole());
         assertEquals(requestEvent, responseEvent);
     }
 
     private void prepareMocksWithNoUser() {
-        when(userApi.getUser(anyString())).thenReturn(Optional.empty());
+        userApi.createUser(null);
     }
 
     private void prepareMocksWithExistingUser() {
-        User user = createUserWithCreatorRole();
-        when(userApi.getUser(anyString())).thenReturn(Optional.of(user));
+        userApi.createUser(createUserWithCreatorRole());
     }
 
+    private User createUserWithOnlyUserRole() {
+        List<Role> roles = new ArrayList<>();
+        roles.add(new Role(USER));
+        return new User(
+            SAMPLE_FEIDE_ID,
+            null,
+            roles);
+    }
 
     private User createUserWithCreatorRole() {
         List<Role> roles = new ArrayList<>();
-        roles.add(new Role(USER));
         roles.add(new Role(CREATOR));
+        roles.add(new Role(USER));
         return new User(
             SAMPLE_FEIDE_ID,
             SAMPLE_CUSTOMER_ID,

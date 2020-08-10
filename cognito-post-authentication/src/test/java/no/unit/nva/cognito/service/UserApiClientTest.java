@@ -71,7 +71,7 @@ public class UserApiClientTest {
 
     @Test
     public void getUserReturnsEmptyOptionalOnInvalidJsonResponse() throws IOException, InterruptedException {
-        TestAppender appender = LogUtils.getTestingAppender(UserApiClient.class);
+        final TestAppender appender = LogUtils.getTestingAppender(UserApiClient.class);
         when(httpResponse.body()).thenReturn(GARBAGE_JSON);
         when(httpResponse.statusCode()).thenReturn(SC_OK);
         when(httpClient.send(any(), any())).thenReturn(httpResponse);
@@ -87,7 +87,7 @@ public class UserApiClientTest {
 
     @Test
     public void getUserReturnsEmptyOptionalOnInvalidHttpResponse() throws IOException, InterruptedException {
-        TestAppender appender = LogUtils.getTestingAppender(UserApiClient.class);
+        final TestAppender appender = LogUtils.getTestingAppender(UserApiClient.class);
         when(httpResponse.statusCode()).thenReturn(SC_INTERNAL_SERVER_ERROR);
         when(httpClient.send(any(), any())).thenReturn(httpResponse);
 
@@ -102,7 +102,7 @@ public class UserApiClientTest {
 
     @Test
     public void getUserReturnsEmptyOptionalOnHttpError() throws IOException, InterruptedException {
-        TestAppender appender = LogUtils.getTestingAppender(UserApiClient.class);
+        final TestAppender appender = LogUtils.getTestingAppender(UserApiClient.class);
         when(httpClient.send(any(), any())).thenThrow(IOException.class);
 
         Optional<User> user = userApiClient.getUser(USERNAME);

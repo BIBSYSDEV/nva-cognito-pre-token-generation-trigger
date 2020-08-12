@@ -109,20 +109,6 @@ public class PostAuthenticationHandlerTest {
         assertEquals(requestEvent, responseEvent);
     }
 
-    /*
-    @Test
-    public void handleRequestReturnsErrorWhenCustomerIsCreated() {
-        prepareMocksWithExistingCustomer();
-
-        Event event = createRequestEvent();
-
-        IllegalStateException exception = assertThrows(IllegalStateException.class,
-            () -> handler.handleRequest(event, mock(Context.class)));
-
-        assertEquals(UserService.USER_CREATION_ERROR_MESSAGE + SAMPLE_FEIDE_ID, exception.getMessage());
-    }
-     */
-
     @Test
     public void handleRequestCreatesUserWithCreatorRoleForNonAffiliatedUser() {
         prepareMocksWithExistingCustomer();

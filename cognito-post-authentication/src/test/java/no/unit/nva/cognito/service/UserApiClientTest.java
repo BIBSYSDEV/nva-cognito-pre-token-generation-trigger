@@ -21,9 +21,6 @@ import no.unit.nva.cognito.model.User;
 import nva.commons.utils.Environment;
 import nva.commons.utils.log.LogUtils;
 import nva.commons.utils.log.TestAppender;
-import org.apache.http.HttpStatus;
-import org.hamcrest.MatcherAssert;
-import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -78,7 +75,6 @@ public class UserApiClientTest {
 
         Optional<User> user = userApiClient.getUser(USERNAME);
 
-        assertTrue(user.isEmpty());
 
         String messages = appender.getMessages();
         assertThat(messages, containsString(UserApiClient.ERROR_PARSING_USER_INFORMATION));
@@ -93,8 +89,6 @@ public class UserApiClientTest {
 
         Optional<User> user = userApiClient.getUser(USERNAME);
 
-        assertTrue(user.isEmpty());
-
         String messages = appender.getMessages();
         assertThat(messages, containsString(UserApiClient.ERROR_PARSING_USER_INFORMATION));
         assertTrue(user.isEmpty());
@@ -106,9 +100,7 @@ public class UserApiClientTest {
         when(httpClient.send(any(), any())).thenThrow(IOException.class);
 
         Optional<User> user = userApiClient.getUser(USERNAME);
-
-        assertTrue(user.isEmpty());
-
+        
         String messages = appender.getMessages();
         assertThat(messages, containsString(UserApiClient.ERROR_PARSING_USER_INFORMATION));
         assertTrue(user.isEmpty());

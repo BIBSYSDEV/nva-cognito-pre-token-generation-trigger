@@ -35,9 +35,7 @@ public class PostAuthenticationHandler implements RequestHandler<Event, Event> {
     public static final String COMMA_DELIMITER = ",";
     public static final String FEIDE_PREFIX = "feide:";
     public static final String NVA = "NVA";
-
-    public static final String NOT_FOUND_ERROR_MESSAGE = "No customer found for orgNumber: ";
-
+    
     private UserService userService;
     private CustomerApi customerApi;
 

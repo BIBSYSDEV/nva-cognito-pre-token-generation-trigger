@@ -62,10 +62,12 @@ public class PostAuthenticationHandlerTest {
         Event requestEvent = createRequestEvent();
         final Event responseEvent = handler.handleRequest(requestEvent, mock(Context.class));
 
-        verify(awsCognitoIdentityProvider, times(2)).adminAddUserToGroup(any());
-        verify(awsCognitoIdentityProvider).adminUpdateUserAttributes(any());
+        verifyNumberOfGroupUpdatesInCognito(2);
+        verifyNumberOfAttributeUpdatesInCogntio(1);
 
-        assertEquals(getUserFromMock(), createUserWithInstitutionAndCreatorRole());
+        User expected = createUserWithInstitutionAndCreatorRole();
+        User createdUser = getUserFromMock();
+        assertEquals(createdUser, expected);
         assertEquals(requestEvent, responseEvent);
     }
 
@@ -77,10 +79,12 @@ public class PostAuthenticationHandlerTest {
         Event requestEvent = createRequestEvent();
         final Event responseEvent = handler.handleRequest(requestEvent, mock(Context.class));
 
-        verify(awsCognitoIdentityProvider).adminAddUserToGroup(any());
-        verify(awsCognitoIdentityProvider).adminUpdateUserAttributes(any());
+        verifyNumberOfGroupUpdatesInCognito(1);
+        verifyNumberOfAttributeUpdatesInCogntio(1);
 
-        assertEquals(getUserFromMock(), createUserWithOnlyUserRole());
+        User expected = createUserWithOnlyUserRole();
+        User createdUser = getUserFromMock();
+        assertEquals(createdUser, expected);
         assertEquals(requestEvent, responseEvent);
     }
 
@@ -92,10 +96,12 @@ public class PostAuthenticationHandlerTest {
         Event requestEvent = createRequestEvent();
         final Event responseEvent = handler.handleRequest(requestEvent, mock(Context.class));
 
-        verify(awsCognitoIdentityProvider, times(2)).adminAddUserToGroup(any());
-        verify(awsCognitoIdentityProvider).adminUpdateUserAttributes(any());
+        verifyNumberOfGroupUpdatesInCognito(2);
+        verifyNumberOfAttributeUpdatesInCogntio(1);
 
-        assertEquals(getUserFromMock(), createUserWithInstitutionAndCreatorRole());
+        User expected = createUserWithInstitutionAndCreatorRole();
+        User createdUser = getUserFromMock();
+        assertEquals(createdUser, expected);
         assertEquals(requestEvent, responseEvent);
     }
 
@@ -108,11 +114,23 @@ public class PostAuthenticationHandlerTest {
         setEmptyAffiliation(requestEvent, EMPTY_AFFILIATION);
         final Event responseEvent = handler.handleRequest(requestEvent, mock(Context.class));
 
-        verify(awsCognitoIdentityProvider).adminAddUserToGroup(any());
-        verify(awsCognitoIdentityProvider).adminUpdateUserAttributes(any());
+        verifyNumberOfGroupUpdatesInCognito(1);
+        verifyNumberOfAttributeUpdatesInCogntio(1);
 
-        assertEquals(getUserFromMock(), createUserWithInstitutionAndOnlyUserRole());
+        User expected = createUserWithInstitutionAndOnlyUserRole();
+        User createdUser = getUserFromMock();
+        assertEquals(createdUser, expected);
         assertEquals(requestEvent, responseEvent);
+    }
+
+    private void verifyNumberOfAttributeUpdatesInCogntio(int numberOfUpdates) {
+        verify(awsCognitoIdentityProvider, times(numberOfUpdates)).adminUpdateUserAttributes(any());
+
+    }
+
+    private void verifyNumberOfGroupUpdatesInCognito(int numberOfUpdates) {
+        verify(awsCognitoIdentityProvider, times(numberOfUpdates)).adminAddUserToGroup(any());
+
     }
 
     private User getUserFromMock() {

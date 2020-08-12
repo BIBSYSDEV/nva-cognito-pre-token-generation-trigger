@@ -100,13 +100,13 @@ public class UserService {
         if (customerId.isPresent()) {
             user = createUserForInstitution(username, customerId.get(), affiliation);
         } else {
-            user = createOtherUser(username);
+            user = createUserWithoutInstitution(username);
         }
         userApi.createUser(user);
         return user;
     }
 
-    private User createOtherUser(String username) {
+    private User createUserWithoutInstitution(String username) {
         return new User(username, null, Collections.singletonList(new Role(USER)));
     }
 

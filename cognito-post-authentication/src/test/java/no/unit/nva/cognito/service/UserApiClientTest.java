@@ -100,7 +100,7 @@ public class UserApiClientTest {
         when(httpClient.send(any(), any())).thenThrow(IOException.class);
 
         Optional<User> user = userApiClient.getUser(USERNAME);
-        
+
         String messages = appender.getMessages();
         assertThat(messages, containsString(UserApiClient.ERROR_PARSING_USER_INFORMATION));
         assertTrue(user.isEmpty());

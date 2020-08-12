@@ -35,9 +35,9 @@ public class PostAuthenticationHandler implements RequestHandler<Event, Event> {
     public static final String COMMA_DELIMITER = ",";
     public static final String FEIDE_PREFIX = "feide:";
     public static final String NVA = "NVA";
-    
-    private UserService userService;
-    private CustomerApi customerApi;
+
+    final private UserService userService;
+    final private CustomerApi customerApi;
 
     private static final Logger logger = LoggerFactory.getLogger(PostAuthenticationHandler.class);
 

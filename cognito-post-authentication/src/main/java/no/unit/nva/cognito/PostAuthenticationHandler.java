@@ -36,8 +36,8 @@ public class PostAuthenticationHandler implements RequestHandler<Event, Event> {
     public static final String FEIDE_PREFIX = "feide:";
     public static final String NVA = "NVA";
 
-    final private UserService userService;
-    final private CustomerApi customerApi;
+    private final UserService userService;
+    private final CustomerApi customerApi;
 
     private static final Logger logger = LoggerFactory.getLogger(PostAuthenticationHandler.class);
 

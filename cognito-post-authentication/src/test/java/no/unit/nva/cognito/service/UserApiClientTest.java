@@ -75,7 +75,6 @@ public class UserApiClientTest {
 
         Optional<User> user = userApiClient.getUser(SAMPLE_USERNAME);
 
-        assertTrue(user.isEmpty());
 
         String messages = appender.getMessages();
         assertThat(messages, containsString(UserApiClient.ERROR_PARSING_USER_INFORMATION));
@@ -90,8 +89,6 @@ public class UserApiClientTest {
 
         Optional<User> user = userApiClient.getUser(SAMPLE_USERNAME);
 
-        assertTrue(user.isEmpty());
-
         String messages = appender.getMessages();
         assertThat(messages, containsString(UserApiClient.ERROR_PARSING_USER_INFORMATION));
         assertTrue(user.isEmpty());
@@ -103,8 +100,6 @@ public class UserApiClientTest {
         when(httpClient.send(any(), any())).thenThrow(IOException.class);
 
         Optional<User> user = userApiClient.getUser(SAMPLE_USERNAME);
-
-        assertTrue(user.isEmpty());
 
         String messages = appender.getMessages();
         assertThat(messages, containsString(UserApiClient.ERROR_PARSING_USER_INFORMATION));

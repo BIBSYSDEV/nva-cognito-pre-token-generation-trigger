@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.http.HttpClient;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import no.unit.nva.cognito.model.Event;
 import no.unit.nva.cognito.model.Role;
@@ -35,10 +36,8 @@ public class PostAuthenticationHandler implements RequestHandler<Event, Event> {
     public static final String FEIDE_PREFIX = "feide:";
     public static final String NVA = "NVA";
 
-    public static final String NOT_FOUND_ERROR_MESSAGE = "No customer found for orgNumber: ";
-
-    private UserService userService;
-    private CustomerApi customerApi;
+    private final UserService userService;
+    private final CustomerApi customerApi;
 
     private static final Logger logger = LoggerFactory.getLogger(PostAuthenticationHandler.class);
 
@@ -98,20 +97,21 @@ public class PostAuthenticationHandler implements RequestHandler<Event, Event> {
 
     private User getUserFromCatalogueOrAddUser(UserAttributes userAttributes) {
         String feideId = userAttributes.getFeideId();
-        String customerId = mapOrgNumberToCustomerId(removeCountryPrefix(userAttributes.getOrgNumber()));
+        Optional<String> customerId = mapOrgNumberToCustomerId(removeCountryPrefix(userAttributes.getOrgNumber()));
         String affiliation = userAttributes.getAffiliation();
         return userService.getOrCreateUser(feideId, customerId, affiliation);
     }
 
-    private String mapOrgNumberToCustomerId(String orgNumber) {
-        return customerApi.getCustomerId(orgNumber)
-            .orElseThrow(() -> new IllegalStateException(NOT_FOUND_ERROR_MESSAGE + orgNumber));
+    private Optional<String> mapOrgNumberToCustomerId(String orgNumber) {
+        return customerApi.getCustomerId(orgNumber);
     }
 
     private List<AttributeType> createUserAttributes(UserAttributes userAttributes, User user) {
         List<AttributeType> userAttributeTypes = new ArrayList<>();
 
-        userAttributeTypes.add(toAttributeType(CUSTOM_CUSTOMER_ID, user.getInstitution()));
+        if (user.getInstitution() != null) {
+            userAttributeTypes.add(toAttributeType(CUSTOM_CUSTOMER_ID, user.getInstitution()));
+        }
         userAttributeTypes.add(toAttributeType(CUSTOM_APPLICATION, NVA));
         userAttributeTypes.add(toAttributeType(CUSTOM_IDENTIFIERS, FEIDE_PREFIX + userAttributes.getFeideId()));
 

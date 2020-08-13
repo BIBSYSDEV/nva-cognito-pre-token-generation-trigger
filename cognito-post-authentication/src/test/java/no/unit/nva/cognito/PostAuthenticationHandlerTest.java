@@ -33,6 +33,10 @@ public class PostAuthenticationHandlerTest {
     public static final String EMPTY_AFFILIATION = "[]";
     public static final String SAMPLE_FEIDE_ID = "feideId";
     public static final String SAMPLE_CUSTOMER_ID = "http://example.org/customer/123";
+
+    public static final String SAMPLE_USER_POOL_ID = "userPoolId";
+    public static final String SAMPLE_USER_NAME = "userName";
+
     public static final String CREATOR = "Creator";
     public static final String USER = "User";
 
@@ -62,8 +66,7 @@ public class PostAuthenticationHandlerTest {
         Event requestEvent = createRequestEvent();
         final Event responseEvent = handler.handleRequest(requestEvent, mock(Context.class));
 
-        verifyNumberOfGroupUpdatesInCognito(2);
-        verifyNumberOfAttributeUpdatesInCogntio(1);
+        verifyNumberOfAttributeUpdatesInCognito(1);
 
         User expected = createUserWithInstitutionAndCreatorRole();
         User createdUser = getUserFromMock();
@@ -74,13 +77,11 @@ public class PostAuthenticationHandlerTest {
     @Test
     public void handleRequestCreatesUserWithUserRoleWhenNoCustomerIsFound() {
         prepareMocksWithNoCustomer();
-        prepareMocksWithNoUser();
 
         Event requestEvent = createRequestEvent();
         final Event responseEvent = handler.handleRequest(requestEvent, mock(Context.class));
 
-        verifyNumberOfGroupUpdatesInCognito(1);
-        verifyNumberOfAttributeUpdatesInCogntio(1);
+        verifyNumberOfAttributeUpdatesInCognito(1);
 
         User expected = createUserWithOnlyUserRole();
         User createdUser = getUserFromMock();
@@ -91,13 +92,11 @@ public class PostAuthenticationHandlerTest {
     @Test
     public void handleRequestCreatesUserWithCreatorRoleForAffiliatedUser() {
         prepareMocksWithExistingCustomer();
-        prepareMocksWithNoUser();
 
         Event requestEvent = createRequestEvent();
         final Event responseEvent = handler.handleRequest(requestEvent, mock(Context.class));
 
-        verifyNumberOfGroupUpdatesInCognito(2);
-        verifyNumberOfAttributeUpdatesInCogntio(1);
+        verifyNumberOfAttributeUpdatesInCognito(1);
 
         User expected = createUserWithInstitutionAndCreatorRole();
         User createdUser = getUserFromMock();
@@ -108,14 +107,12 @@ public class PostAuthenticationHandlerTest {
     @Test
     public void handleRequestCreatesUserWithCreatorRoleForNonAffiliatedUser() {
         prepareMocksWithExistingCustomer();
-        prepareMocksWithNoUser();
 
         Event requestEvent = createRequestEvent();
         setEmptyAffiliation(requestEvent, EMPTY_AFFILIATION);
         final Event responseEvent = handler.handleRequest(requestEvent, mock(Context.class));
 
-        verifyNumberOfGroupUpdatesInCognito(1);
-        verifyNumberOfAttributeUpdatesInCogntio(1);
+        verifyNumberOfAttributeUpdatesInCognito(1);
 
         User expected = createUserWithInstitutionAndOnlyUserRole();
         User createdUser = getUserFromMock();
@@ -123,14 +120,8 @@ public class PostAuthenticationHandlerTest {
         assertEquals(requestEvent, responseEvent);
     }
 
-    private void verifyNumberOfAttributeUpdatesInCogntio(int numberOfUpdates) {
+    private void verifyNumberOfAttributeUpdatesInCognito(int numberOfUpdates) {
         verify(awsCognitoIdentityProvider, times(numberOfUpdates)).adminUpdateUserAttributes(any());
-
-    }
-
-    private void verifyNumberOfGroupUpdatesInCognito(int numberOfUpdates) {
-        verify(awsCognitoIdentityProvider, times(numberOfUpdates)).adminAddUserToGroup(any());
-
     }
 
     private User getUserFromMock() {
@@ -139,10 +130,6 @@ public class PostAuthenticationHandlerTest {
 
     private void setEmptyAffiliation(Event event, String emptyAffiliation) {
         event.getRequest().getUserAttributes().setAffiliation(emptyAffiliation);
-    }
-
-    private void prepareMocksWithNoUser() {
-        userApi.createUser(null);
     }
 
     private void prepareMocksWithExistingUser() {
@@ -195,8 +182,8 @@ public class PostAuthenticationHandlerTest {
         request.setUserAttributes(userAttributes);
 
         Event event = new Event();
-        event.setUserPoolId("userPoolId");
-        event.setUserName("userName");
+        event.setUserPoolId(SAMPLE_USER_POOL_ID);
+        event.setUserName(SAMPLE_USER_NAME);
         event.setRequest(request);
 
         return event;

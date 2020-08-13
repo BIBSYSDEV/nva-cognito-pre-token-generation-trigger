@@ -8,10 +8,11 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
+import java.net.http.HttpRequest.BodyPublishers;
 import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.util.Optional;
-import java.util.function.Predicate;
+import no.unit.nva.cognito.exception.CreateUserFailedException;
 import no.unit.nva.cognito.model.User;
 import nva.commons.utils.Environment;
 import nva.commons.utils.JacocoGenerated;
@@ -30,6 +31,7 @@ public class UserApiClient implements UserApi {
     public static final String USER_API_HOST = "USER_API_HOST";
     public static final String ERROR_PARSING_USER_INFORMATION = "Error parsing user information";
     public static final String ERROR_FETCHING_USER_INFORMATION = "Error fetching user information";
+    public static final String CREATE_USER_ERROR_MESSAGE = "Error creating user in user catalogue";
 
     private final ObjectMapper objectMapper;
     private final HttpClient httpClient;
@@ -50,7 +52,7 @@ public class UserApiClient implements UserApi {
         logger.info("Requesting user information for username: " + username);
         return fetchUserInformation(username)
             .stream()
-            .filter(responseIsSuccessful())
+            .filter(this::responseIsSuccessful)
             .map(this::tryParsingUser)
             .collect(SingletonCollector.tryCollect())
             .flatMap(this::flattenNestedAttempts)
@@ -59,17 +61,38 @@ public class UserApiClient implements UserApi {
 
     @Override
     @JacocoGenerated
-    public void createUser(User user) {
+    public User createUser(User user) {
+        logger.info("Requesting user creation for username: " + user.getUsername());
+        return createNewUser(user)
+            .stream()
+            .filter(this::responseIsSuccessful)
+            .map(this::tryParsingUser)
+            .collect(SingletonCollector.tryCollect())
+            .flatMap(this::flattenNestedAttempts)
+            .orElseThrow(this::logErrorAndReturnException);
+    }
+
+    private CreateUserFailedException logErrorAndReturnException(Failure<User> failure) {
+        logger.error(failure.getException().getMessage(), failure.getException());
+        return new CreateUserFailedException(CREATE_USER_ERROR_MESSAGE);
     }
 
     private Try<User> flattenNestedAttempts(Try<User> attempt) {
         return attempt;
     }
 
-    private Optional<HttpResponse<String>> fetchUserInformation(String orgNumber) {
-        return attempt(() -> formUri(orgNumber))
+    private Optional<HttpResponse<String>> createNewUser(User user) {
+        return attempt(() -> formUri())
             .map(URIBuilder::build)
-            .map(this::buildHttpRequest)
+            .map(uri -> buildCreateUserRequest(uri, user))
+            .map(this::sendHttpRequest)
+            .toOptional(failure -> logResponseError(failure));
+    }
+
+    private Optional<HttpResponse<String>> fetchUserInformation(String username) {
+        return attempt(() -> formUri(username))
+            .map(URIBuilder::build)
+            .map(this::buildGetUserRequest)
             .map(this::sendHttpRequest)
             .toOptional(failure -> logResponseError(failure));
     }
@@ -78,8 +101,8 @@ public class UserApiClient implements UserApi {
         return attempt(() -> parseUser(response));
     }
 
-    private Predicate<HttpResponse<String>> responseIsSuccessful() {
-        return resp -> resp.statusCode() == HttpStatus.SC_OK;
+    private boolean responseIsSuccessful(HttpResponse<String> response) {
+        return response.statusCode() == HttpStatus.SC_OK;
     }
 
     private void logErrorParsingUserInformation(Failure<User> failure) {
@@ -106,10 +129,25 @@ public class UserApiClient implements UserApi {
             .setPath(PATH + username);
     }
 
-    private HttpRequest buildHttpRequest(URI uri) {
+    private URIBuilder formUri() {
+        return new URIBuilder()
+            .setScheme(userApiScheme)
+            .setHost(userApiHost)
+            .setPath(PATH);
+    }
+
+    private HttpRequest buildGetUserRequest(URI uri) {
         return HttpRequest.newBuilder()
             .uri(uri)
             .GET()
             .build();
     }
+
+    private HttpRequest buildCreateUserRequest(URI uri, User user) throws JsonProcessingException {
+        return HttpRequest.newBuilder()
+            .uri(uri)
+            .POST(BodyPublishers.ofString(objectMapper.writeValueAsString(user)))
+            .build();
+    }
+
 }

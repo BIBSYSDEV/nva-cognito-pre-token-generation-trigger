@@ -74,17 +74,8 @@ public class PostAuthenticationHandler implements RequestHandler<Event, Event> {
         User user = getUserFromCatalogueOrAddUser(userAttributes);
 
         updateUserDetailsInUserPool(userPoolId, userName, userAttributes, user);
-        updateUserGroupsInUserPool(userPoolId, userName, user);
 
         return event;
-    }
-
-    private void updateUserGroupsInUserPool(String userPoolId, String userName, User user) {
-        userService.updateUserGroups(
-            userPoolId,
-            userName,
-            user.getRoles()
-        );
     }
 
     private void updateUserDetailsInUserPool(String userPoolId, String userName, UserAttributes userAttributes,

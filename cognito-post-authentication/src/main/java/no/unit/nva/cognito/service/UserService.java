@@ -1,7 +1,6 @@
 package no.unit.nva.cognito.service;
 
 import com.amazonaws.services.cognitoidp.AWSCognitoIdentityProvider;
-import com.amazonaws.services.cognitoidp.model.AdminAddUserToGroupRequest;
 import com.amazonaws.services.cognitoidp.model.AdminUpdateUserAttributesRequest;
 import com.amazonaws.services.cognitoidp.model.AttributeType;
 import java.util.ArrayList;
@@ -15,7 +14,6 @@ import org.slf4j.LoggerFactory;
 
 public class UserService {
 
-    public static final String USER_CREATION_ERROR_MESSAGE = "Error creating user in user catalogue: ";
     private final UserApi userApi;
     private final AWSCognitoIdentityProvider awsCognitoIdentityProvider;
 
@@ -36,17 +34,6 @@ public class UserService {
     }
 
     /**
-     * Update groups for user based on provided roles.
-     *
-     * @param userPoolId    userPoolId
-     * @param userName      userName
-     * @param roles         roles
-     */
-    public void updateUserGroups(String userPoolId, String userName, List<Role> roles) {
-        roles.forEach(role -> addUserToGroup(userPoolId, userName, toRoleGroupName(role)));
-    }
-
-    /**
      * Get user from user catalogue service or create new user if not found.
      *
      * @param feideId       feideId as username
@@ -58,22 +45,6 @@ public class UserService {
         return userApi
             .getUser(feideId)
             .orElseGet(() -> createUser(feideId, customerId, affiliation));
-    }
-
-    /**
-     * Add user to group defined by groupName.
-     *
-     * @param userPoolId    userPoolId
-     * @param userName      userName
-     * @param groupName     groupName
-     */
-    private void addUserToGroup(String userPoolId, String userName, String groupName) {
-        AdminAddUserToGroupRequest request = new AdminAddUserToGroupRequest()
-            .withUserPoolId(userPoolId)
-            .withUsername(userName)
-            .withGroupName(groupName);
-        logger.info("Adding User To Group: " + request.toString());
-        awsCognitoIdentityProvider.adminAddUserToGroup(request);
     }
 
     /**
@@ -90,10 +61,6 @@ public class UserService {
             .withUserAttributes(attributes);
         logger.info("Updating User Attributes: " + request.toString());
         awsCognitoIdentityProvider.adminUpdateUserAttributes(request);
-    }
-
-    private String toRoleGroupName(Role role) {
-        return String.format(ROLE_GROUP_TEMPLATE, role.getRolename());
     }
 
     private User createUser(String username, Optional<String> customerId, String affiliation) {

@@ -1,7 +1,6 @@
 package no.unit.nva.cognito;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -67,8 +66,7 @@ public class PostAuthenticationHandlerTest {
         Event requestEvent = createRequestEvent();
         final Event responseEvent = handler.handleRequest(requestEvent, mock(Context.class));
 
-        verifyNumberOfGroupUpdatesInCognito(2);
-        verifyNumberOfAttributeUpdatesInCogntio(1);
+        verifyNumberOfAttributeUpdatesInCognito(1);
 
         User expected = createUserWithInstitutionAndCreatorRole();
         User createdUser = getUserFromMock();
@@ -83,8 +81,7 @@ public class PostAuthenticationHandlerTest {
         Event requestEvent = createRequestEvent();
         final Event responseEvent = handler.handleRequest(requestEvent, mock(Context.class));
 
-        verifyNumberOfGroupUpdatesInCognito(1);
-        verifyNumberOfAttributeUpdatesInCogntio(1);
+        verifyNumberOfAttributeUpdatesInCognito(1);
 
         User expected = createUserWithOnlyUserRole();
         User createdUser = getUserFromMock();
@@ -100,8 +97,7 @@ public class PostAuthenticationHandlerTest {
         Event requestEvent = createRequestEvent();
         final Event responseEvent = handler.handleRequest(requestEvent, mock(Context.class));
 
-        verifyNumberOfGroupUpdatesInCognito(2);
-        verifyNumberOfAttributeUpdatesInCogntio(1);
+        verifyNumberOfAttributeUpdatesInCognito(1);
 
         User expected = createUserWithInstitutionAndCreatorRole();
         User createdUser = getUserFromMock();
@@ -118,8 +114,7 @@ public class PostAuthenticationHandlerTest {
         setEmptyAffiliation(requestEvent, EMPTY_AFFILIATION);
         final Event responseEvent = handler.handleRequest(requestEvent, mock(Context.class));
 
-        verifyNumberOfGroupUpdatesInCognito(1);
-        verifyNumberOfAttributeUpdatesInCogntio(1);
+        verifyNumberOfAttributeUpdatesInCognito(1);
 
         User expected = createUserWithInstitutionAndOnlyUserRole();
         User createdUser = getUserFromMock();
@@ -127,13 +122,8 @@ public class PostAuthenticationHandlerTest {
         assertEquals(requestEvent, responseEvent);
     }
 
-    private void verifyNumberOfAttributeUpdatesInCogntio(int numberOfUpdates) {
+    private void verifyNumberOfAttributeUpdatesInCognito(int numberOfUpdates) {
         verify(awsCognitoIdentityProvider, times(numberOfUpdates)).adminUpdateUserAttributes(any());
-    }
-
-    private void verifyNumberOfGroupUpdatesInCognito(int numberOfUpdates) {
-        verify(awsCognitoIdentityProvider, times(numberOfUpdates)).adminAddUserToGroup(any());
-
     }
 
     private User getUserFromMock() {

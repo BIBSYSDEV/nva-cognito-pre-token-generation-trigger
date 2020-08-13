@@ -12,7 +12,6 @@ import java.net.http.HttpRequest.BodyPublishers;
 import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.util.Optional;
-import java.util.function.Predicate;
 import no.unit.nva.cognito.model.User;
 import nva.commons.utils.Environment;
 import nva.commons.utils.JacocoGenerated;
@@ -51,7 +50,7 @@ public class UserApiClient implements UserApi {
         logger.info("Requesting user information for username: " + username);
         return fetchUserInformation(username)
             .stream()
-            .filter(responseIsSuccessful())
+            .filter(this::responseIsSuccessful)
             .map(this::tryParsingUser)
             .collect(SingletonCollector.tryCollect())
             .flatMap(this::flattenNestedAttempts)
@@ -64,7 +63,7 @@ public class UserApiClient implements UserApi {
         logger.info("Requesting user creation for username: " + user.getUsername());
         return createNewUser(user)
             .stream()
-            .filter(responseIsSuccessful())
+            .filter(this::responseIsSuccessful)
             .map(this::tryParsingUser)
             .collect(SingletonCollector.tryCollect())
             .flatMap(this::flattenNestedAttempts)
@@ -95,8 +94,8 @@ public class UserApiClient implements UserApi {
         return attempt(() -> parseUser(response));
     }
 
-    private Predicate<HttpResponse<String>> responseIsSuccessful() {
-        return resp -> resp.statusCode() == HttpStatus.SC_OK;
+    private boolean responseIsSuccessful(HttpResponse<String> response) {
+        return response.statusCode() == HttpStatus.SC_OK;
     }
 
     private void logErrorParsingUserInformation(Failure<User> failure) {

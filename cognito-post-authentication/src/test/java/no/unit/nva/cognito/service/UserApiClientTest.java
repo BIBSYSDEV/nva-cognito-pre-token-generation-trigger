@@ -1,9 +1,13 @@
 package no.unit.nva.cognito.service;
 
+import static no.unit.nva.cognito.service.UserApiClient.ERROR_FETCHING_USER_INFORMATION;
+import static no.unit.nva.cognito.service.UserApiClient.ERROR_PARSING_USER_INFORMATION;
 import static org.apache.http.HttpStatus.SC_INTERNAL_SERVER_ERROR;
 import static org.apache.http.HttpStatus.SC_OK;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -16,6 +20,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpResponse;
 import java.util.Collections;
 import java.util.Optional;
+import no.unit.nva.cognito.exception.CreateUserFailedException;
 import no.unit.nva.cognito.model.Role;
 import no.unit.nva.cognito.model.User;
 import nva.commons.utils.Environment;
@@ -77,7 +82,7 @@ public class UserApiClientTest {
 
 
         String messages = appender.getMessages();
-        assertThat(messages, containsString(UserApiClient.ERROR_PARSING_USER_INFORMATION));
+        assertThat(messages, containsString(ERROR_PARSING_USER_INFORMATION));
         assertTrue(user.isEmpty());
     }
 
@@ -90,7 +95,7 @@ public class UserApiClientTest {
         Optional<User> user = userApiClient.getUser(SAMPLE_USERNAME);
 
         String messages = appender.getMessages();
-        assertThat(messages, containsString(UserApiClient.ERROR_PARSING_USER_INFORMATION));
+        assertThat(messages, containsString(ERROR_PARSING_USER_INFORMATION));
         assertTrue(user.isEmpty());
     }
 
@@ -102,7 +107,7 @@ public class UserApiClientTest {
         Optional<User> user = userApiClient.getUser(SAMPLE_USERNAME);
 
         String messages = appender.getMessages();
-        assertThat(messages, containsString(UserApiClient.ERROR_PARSING_USER_INFORMATION));
+        assertThat(messages, containsString(ERROR_PARSING_USER_INFORMATION));
         assertTrue(user.isEmpty());
     }
 
@@ -114,9 +119,9 @@ public class UserApiClientTest {
 
         User requestUser = createUser();
 
-        Optional<User> responseUser = userApiClient.createUser(requestUser);
+        User responseUser = userApiClient.createUser(requestUser);
 
-        Assertions.assertTrue(responseUser.isPresent());
+        Assertions.assertNotNull(responseUser);
     }
 
     @Test
@@ -126,13 +131,12 @@ public class UserApiClientTest {
 
         User requestUser = createUser();
 
-        Optional<User> responseUser = userApiClient.createUser(requestUser);
+        Exception exception = assertThrows(CreateUserFailedException.class,
+            () -> userApiClient.createUser(requestUser));
 
-        assertTrue(responseUser.isEmpty());
-
+        assertEquals(UserApiClient.CREATE_USER_ERROR_MESSAGE, exception.getMessage());
         String messages = appender.getMessages();
-        assertThat(messages, containsString(UserApiClient.ERROR_PARSING_USER_INFORMATION));
-        assertTrue(responseUser.isEmpty());
+        assertThat(messages, containsString(ERROR_FETCHING_USER_INFORMATION));
     }
 
     public String getValidJsonUser() throws JsonProcessingException {

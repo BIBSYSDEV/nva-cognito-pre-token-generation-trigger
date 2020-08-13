@@ -7,5 +7,5 @@ public interface UserApi {
 
     Optional<User> getUser(String username);
 
-    Optional<User> createUser(User user);
+    User createUser(User user);
 }

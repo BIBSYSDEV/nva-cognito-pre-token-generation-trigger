@@ -12,6 +12,7 @@ import java.net.http.HttpRequest.BodyPublishers;
 import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.util.Optional;
+import no.unit.nva.cognito.exception.CreateUserFailedException;
 import no.unit.nva.cognito.model.User;
 import nva.commons.utils.Environment;
 import nva.commons.utils.JacocoGenerated;
@@ -30,6 +31,7 @@ public class UserApiClient implements UserApi {
     public static final String USER_API_HOST = "USER_API_HOST";
     public static final String ERROR_PARSING_USER_INFORMATION = "Error parsing user information";
     public static final String ERROR_FETCHING_USER_INFORMATION = "Error fetching user information";
+    public static final String CREATE_USER_ERROR_MESSAGE = "Error creating user in user catalogue";
 
     private final ObjectMapper objectMapper;
     private final HttpClient httpClient;
@@ -59,7 +61,7 @@ public class UserApiClient implements UserApi {
 
     @Override
     @JacocoGenerated
-    public Optional<User> createUser(User user) {
+    public User createUser(User user) {
         logger.info("Requesting user creation for username: " + user.getUsername());
         return createNewUser(user)
             .stream()
@@ -67,7 +69,12 @@ public class UserApiClient implements UserApi {
             .map(this::tryParsingUser)
             .collect(SingletonCollector.tryCollect())
             .flatMap(this::flattenNestedAttempts)
-            .toOptional(this::logErrorParsingUserInformation);
+            .orElseThrow(this::logErrorAndReturnException);
+    }
+
+    private CreateUserFailedException logErrorAndReturnException(Failure<User> failure) {
+        logger.error(failure.getException().getMessage(), failure.getException());
+        return new CreateUserFailedException(CREATE_USER_ERROR_MESSAGE);
     }
 
     private Try<User> flattenNestedAttempts(Try<User> attempt) {

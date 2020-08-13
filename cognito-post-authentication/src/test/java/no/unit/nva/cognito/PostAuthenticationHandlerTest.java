@@ -92,7 +92,6 @@ public class PostAuthenticationHandlerTest {
     @Test
     public void handleRequestCreatesUserWithCreatorRoleForAffiliatedUser() {
         prepareMocksWithExistingCustomer();
-        prepareMocksWithNoUser();
 
         Event requestEvent = createRequestEvent();
         final Event responseEvent = handler.handleRequest(requestEvent, mock(Context.class));
@@ -108,7 +107,6 @@ public class PostAuthenticationHandlerTest {
     @Test
     public void handleRequestCreatesUserWithCreatorRoleForNonAffiliatedUser() {
         prepareMocksWithExistingCustomer();
-        prepareMocksWithNoUser();
 
         Event requestEvent = createRequestEvent();
         setEmptyAffiliation(requestEvent, EMPTY_AFFILIATION);
@@ -132,10 +130,6 @@ public class PostAuthenticationHandlerTest {
 
     private void setEmptyAffiliation(Event event, String emptyAffiliation) {
         event.getRequest().getUserAttributes().setAffiliation(emptyAffiliation);
-    }
-
-    private void prepareMocksWithNoUser() {
-        userApi.createUser(null);
     }
 
     private void prepareMocksWithExistingUser() {

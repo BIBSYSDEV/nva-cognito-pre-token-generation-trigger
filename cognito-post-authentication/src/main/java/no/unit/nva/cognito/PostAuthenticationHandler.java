@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.http.HttpClient;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import no.unit.nva.cognito.model.Event;
@@ -22,10 +23,11 @@ import no.unit.nva.cognito.service.UserApiClient;
 import no.unit.nva.cognito.service.UserService;
 import nva.commons.utils.Environment;
 import nva.commons.utils.JacocoGenerated;
+import nva.commons.utils.JsonUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class PostAuthenticationHandler implements RequestHandler<Event, Event> {
+public class PostAuthenticationHandler implements RequestHandler<Map<String, Object>, Map<String, Object>> {
 
     public static final String CUSTOM_APPLICATION_ROLES = "custom:applicationRoles";
     public static final String CUSTOM_APPLICATION = "custom:application";
@@ -65,7 +67,9 @@ public class PostAuthenticationHandler implements RequestHandler<Event, Event> {
     }
 
     @Override
-    public Event handleRequest(Event event, Context context) {
+    public Map<String, Object> handleRequest(Map<String, Object> input, Context context) {
+
+        Event event = JsonUtils.objectMapper.convertValue(input, Event.class);
 
         String userPoolId = event.getUserPoolId();
         String userName = event.getUserName();
@@ -76,7 +80,7 @@ public class PostAuthenticationHandler implements RequestHandler<Event, Event> {
 
         updateUserDetailsInUserPool(userPoolId, userName, userAttributes, user);
 
-        return event;
+        return input;
     }
 
     private void updateUserDetailsInUserPool(String userPoolId, String userName, UserAttributes userAttributes,

@@ -7,7 +7,6 @@ import com.amazonaws.services.cognitoidp.model.AttributeType;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.io.IOException;
 import java.net.http.HttpClient;
 import java.util.ArrayList;
 import java.util.List;
@@ -39,7 +38,6 @@ public class PostAuthenticationHandler implements RequestHandler<Event, Event> {
 
     private final UserService userService;
     private final CustomerApi customerApi;
-    private final ObjectMapper objectMapper = new ObjectMapper();
 
     private static final Logger logger = LoggerFactory.getLogger(PostAuthenticationHandler.class);
 
@@ -68,11 +66,6 @@ public class PostAuthenticationHandler implements RequestHandler<Event, Event> {
 
     @Override
     public Event handleRequest(Event event, Context context) {
-        try {
-            objectMapper.writeValue(System.out, event);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
 
         String userPoolId = event.getUserPoolId();
         String userName = event.getUserName();

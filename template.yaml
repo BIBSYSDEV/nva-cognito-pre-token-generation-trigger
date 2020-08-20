@@ -68,7 +68,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: cognito-post-authentication
-      Handler: no.unit.nva.cognito.PostAuthenticationHandler::handleRequest
+      Handler: no.unit.nva.cognito.DebugHandler::handleRequest
       Runtime: java11
       Role: !GetAtt TriggerExecutionRole.Arn
       MemorySize: 1408

@@ -84,4 +84,4 @@ Outputs:
     Description: ARN Identifier of the PostAuthenticationTrigger
     Value: !GetAtt PostAuthenticationTrigger.Arn
     Export:
-      Name: CognitoPostAuthenticationFunctionArn
+      Name: CognitoPostAuthenticationFunctionArnV2

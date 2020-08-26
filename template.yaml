@@ -48,7 +48,7 @@ Resources:
       Policies:
         - PolicyName: writeLog
           PolicyDocument:
-            Version: 2012-10-17
+            Version: '2012-10-17'
             Statement:
               - Effect: Allow
                 Action:
@@ -65,6 +65,14 @@ Resources:
                   - cognito-idp:AdminAddUserToGroup
                   - cognito-idp:AdminUpdateUserAttributes
                 Resource: !Sub 'arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/*'
+        - PolicyName: GetSecretValue
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: !Ref UserServiceSecretArn
 
   InvokePostAuthenticationTriggerPermission:
     Type: AWS::Lambda::Permission
@@ -81,9 +89,6 @@ Resources:
       Runtime: java11
       Role: !GetAtt TriggerExecutionRole.Arn
       MemorySize: 1408
-      Policies:
-        - AWSSecretsManagerGetSecretValuePolicy:
-            SecretArn: !Ref UserServiceSecretArn
       Environment:
         Variables:
           CUSTOMER_API_SCHEME: https

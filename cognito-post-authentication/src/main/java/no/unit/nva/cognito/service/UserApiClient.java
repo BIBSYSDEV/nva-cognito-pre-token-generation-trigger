@@ -36,10 +36,13 @@ public class UserApiClient implements UserApi {
     public static final String CREATE_USER_ERROR_MESSAGE = "Error creating user in user catalogue";
     public static final String USER_SERVICE_SECRET_NAME = "USER_SERVICE_SECRET_NAME";
     public static final String USER_SERVICE_SECRET_KEY = "USER_SERVICE_SECRET_KEY";
+    public static final String AUTHORIZATION = "Authorization";
 
     private final ObjectMapper objectMapper;
     private final HttpClient httpClient;
     private final SecretsReader secretsReader;
+    private final String userServiceSecretName;
+    private final String userServiceSecretKey;
     private final String userApiScheme;
     private final String userApiHost;
 
@@ -54,6 +57,8 @@ public class UserApiClient implements UserApi {
         this.secretsReader = secretsReader;
         this.userApiScheme = environment.readEnv(USER_API_SCHEME);
         this.userApiHost = environment.readEnv(USER_API_HOST);
+        this.userServiceSecretName = environment.readEnv(USER_SERVICE_SECRET_NAME);
+        this.userServiceSecretKey = environment.readEnv(USER_SERVICE_SECRET_KEY);
 
     }
 
@@ -156,7 +161,7 @@ public class UserApiClient implements UserApi {
     private HttpRequest buildCreateUserRequest(URI uri, User user) throws JsonProcessingException, ForbiddenException {
         return HttpRequest.newBuilder()
             .uri(uri)
-            .header("Authorization", secretsReader.fetchSecret(USER_SERVICE_SECRET_NAME, USER_SERVICE_SECRET_KEY))
+            .header(AUTHORIZATION, secretsReader.fetchSecret(userServiceSecretName, userServiceSecretKey))
             .POST(BodyPublishers.ofString(objectMapper.writeValueAsString(user)))
             .build();
     }

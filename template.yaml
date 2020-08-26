@@ -28,6 +28,9 @@ Parameters:
   UserServiceSecretKey:
     Type: String
     Description: Key in the Secret for Users and Role Service
+  UserServiceSecretArn:
+    Type: String
+    Description: ARN to the Secret for Users and Role Service
 
 Resources:
   
@@ -78,6 +81,9 @@ Resources:
       Runtime: java11
       Role: !GetAtt TriggerExecutionRole.Arn
       MemorySize: 1408
+      Policies:
+        - AWSSecretsManagerGetSecretValuePolicy:
+            secretArn: !Ref UserServiceSecretArn
       Environment:
         Variables:
           CUSTOMER_API_SCHEME: https

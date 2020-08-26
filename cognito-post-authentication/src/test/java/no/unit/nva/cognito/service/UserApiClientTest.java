@@ -2,6 +2,10 @@ package no.unit.nva.cognito.service;
 
 import static no.unit.nva.cognito.service.UserApiClient.ERROR_FETCHING_USER_INFORMATION;
 import static no.unit.nva.cognito.service.UserApiClient.ERROR_PARSING_USER_INFORMATION;
+import static no.unit.nva.cognito.service.UserApiClient.USER_API_HOST;
+import static no.unit.nva.cognito.service.UserApiClient.USER_API_SCHEME;
+import static no.unit.nva.cognito.service.UserApiClient.USER_SERVICE_SECRET_KEY;
+import static no.unit.nva.cognito.service.UserApiClient.USER_SERVICE_SECRET_NAME;
 import static org.apache.http.HttpStatus.SC_INTERNAL_SERVER_ERROR;
 import static org.apache.http.HttpStatus.SC_OK;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -36,8 +40,6 @@ import org.junit.jupiter.api.Test;
 @SuppressWarnings("unchecked")
 public class UserApiClientTest {
 
-    public static final String SAMPLE_SCHEME = "http";
-    public static final String SAMPLE_HOST = "example.org";
     public static final String GARBAGE_JSON = "{{}";
     public static final String SAMPLE_USERNAME = "username";
     public static final String SAMPLE_INSTITUTION_ID = "institution.id";
@@ -58,8 +60,10 @@ public class UserApiClientTest {
         objectMapper = new ObjectMapper();
         secretsReader = mock(SecretsReader.class);
         Environment environment = mock(Environment.class);
-        when(environment.readEnv(UserApiClient.USER_API_SCHEME)).thenReturn(SAMPLE_SCHEME);
-        when(environment.readEnv(UserApiClient.USER_API_HOST)).thenReturn(SAMPLE_HOST);
+        when(environment.readEnv(USER_API_SCHEME)).thenReturn(USER_API_SCHEME);
+        when(environment.readEnv(USER_API_HOST)).thenReturn(USER_API_HOST);
+        when(environment.readEnv(USER_SERVICE_SECRET_NAME)).thenReturn(USER_SERVICE_SECRET_NAME);
+        when(environment.readEnv(USER_SERVICE_SECRET_KEY)).thenReturn(USER_SERVICE_SECRET_KEY);
         httpClient = mock(HttpClient.class);
         httpResponse = mock(HttpResponse.class);
 

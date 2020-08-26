@@ -28,7 +28,7 @@ import org.slf4j.LoggerFactory;
 
 public class UserApiClient implements UserApi {
 
-    public static final String PATH = "/users/";
+    public static final String PATH = "/users-roles-internal/service/users";
     public static final String USER_API_SCHEME = "USER_API_SCHEME";
     public static final String USER_API_HOST = "USER_API_HOST";
     public static final String ERROR_PARSING_USER_INFORMATION = "Error parsing user information";

@@ -22,6 +22,12 @@ Parameters:
   CustomDomain:
     Type: String
     Description: Custom API to connect this lambda to
+  UserServiceSecretName:
+    Type: String
+    Description: Name of the Secret for Users and Role Service
+  UserServiceSecretKey:
+    Type: String
+    Description: Key in the Secret for Users and Role Service
 
 Resources:
   
@@ -78,6 +84,8 @@ Resources:
           CUSTOMER_API_HOST: !Ref CustomDomain
           USER_API_SCHEME: https
           USER_API_HOST: !Ref CustomDomain
+          USER_SERVICE_SECRET_NAME: !Ref UserServiceSecretName
+          USER_SERVICE_SECRET_KEY: !Ref UserServiceSecretKey
 
 Outputs:
   CognitoPostAuthenticationFunction:

@@ -24,8 +24,10 @@ import no.unit.nva.cognito.service.UserApi;
 import no.unit.nva.cognito.service.UserApiMock;
 import no.unit.nva.cognito.service.UserService;
 import nva.commons.utils.JsonUtils;
+import nva.commons.utils.aws.SecretsReader;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 @SuppressWarnings("unchecked")
 public class PostAuthenticationHandlerTest {
@@ -45,6 +47,7 @@ public class PostAuthenticationHandlerTest {
     private CustomerApi customerApi;
     private UserApi userApi;
     private UserService userService;
+    private SecretsReader secretsReader;
     private PostAuthenticationHandler handler;
     private AWSCognitoIdentityProvider awsCognitoIdentityProvider;
 

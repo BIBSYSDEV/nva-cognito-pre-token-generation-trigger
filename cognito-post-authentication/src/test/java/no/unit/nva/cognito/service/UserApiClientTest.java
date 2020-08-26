@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -23,7 +24,9 @@ import java.util.Optional;
 import no.unit.nva.cognito.exception.CreateUserFailedException;
 import no.unit.nva.cognito.model.Role;
 import no.unit.nva.cognito.model.User;
+import nva.commons.exceptions.ForbiddenException;
 import nva.commons.utils.Environment;
+import nva.commons.utils.aws.SecretsReader;
 import nva.commons.utils.log.LogUtils;
 import nva.commons.utils.log.TestAppender;
 import org.junit.jupiter.api.Assertions;
@@ -39,10 +42,12 @@ public class UserApiClientTest {
     public static final String SAMPLE_USERNAME = "username";
     public static final String SAMPLE_INSTITUTION_ID = "institution.id";
     public static final String CREATOR = "Creator";
+    public static final String THE_API_KEY = "TheApiKey";
 
     private ObjectMapper objectMapper;
     private UserApiClient userApiClient;
     private HttpClient httpClient;
+    private SecretsReader secretsReader;
     private HttpResponse httpResponse;
 
     /**
@@ -51,13 +56,14 @@ public class UserApiClientTest {
     @BeforeEach
     public void init() {
         objectMapper = new ObjectMapper();
+        secretsReader = mock(SecretsReader.class);
         Environment environment = mock(Environment.class);
         when(environment.readEnv(UserApiClient.USER_API_SCHEME)).thenReturn(SAMPLE_SCHEME);
         when(environment.readEnv(UserApiClient.USER_API_HOST)).thenReturn(SAMPLE_HOST);
         httpClient = mock(HttpClient.class);
         httpResponse = mock(HttpResponse.class);
 
-        userApiClient = new UserApiClient(httpClient, new ObjectMapper(), environment);
+        userApiClient = new UserApiClient(httpClient, new ObjectMapper(), secretsReader, environment);
     }
 
     @Test
@@ -112,16 +118,21 @@ public class UserApiClientTest {
     }
 
     @Test
-    public void createUserReturnsCreatedUserOnSuccess() throws IOException, InterruptedException {
+    public void createUserReturnsCreatedUserOnSuccess() throws IOException, InterruptedException, ForbiddenException {
         when(httpResponse.body()).thenReturn(getValidJsonUser());
         when(httpResponse.statusCode()).thenReturn(SC_OK);
         when(httpClient.send(any(), any())).thenReturn(httpResponse);
+        prepareMocksWithSecret();
 
         User requestUser = createUser();
 
         User responseUser = userApiClient.createUser(requestUser);
 
         Assertions.assertNotNull(responseUser);
+    }
+
+    private void prepareMocksWithSecret() throws ForbiddenException {
+        when(secretsReader.fetchSecret(anyString(), anyString())).thenReturn(THE_API_KEY);
     }
 
     @Test

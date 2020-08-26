@@ -24,6 +24,7 @@ import no.unit.nva.cognito.service.UserService;
 import nva.commons.utils.Environment;
 import nva.commons.utils.JacocoGenerated;
 import nva.commons.utils.JsonUtils;
+import nva.commons.utils.aws.SecretsReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,15 +56,32 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
 
     @JacocoGenerated
     private static CustomerApiClient newCustomerApiClient() {
-        return new CustomerApiClient(HttpClient.newHttpClient(), new ObjectMapper(), new Environment());
+        return new CustomerApiClient(
+            HttpClient.newHttpClient(),
+            new ObjectMapper(),
+            new Environment());
+    }
+
+    @JacocoGenerated
+    private static SecretsReader defaultSecretsReader() {
+        return new SecretsReader();
     }
 
     @JacocoGenerated
     private static UserService newUserService() {
         return new UserService(
-            new UserApiClient(HttpClient.newHttpClient(), new ObjectMapper(), new Environment()),
+            defaultUserApiClient(),
             AWSCognitoIdentityProviderClient.builder().build()
         );
+    }
+
+    @JacocoGenerated
+    private static UserApiClient defaultUserApiClient() {
+        return new UserApiClient(
+            HttpClient.newHttpClient(),
+            new ObjectMapper(),
+            defaultSecretsReader(),
+            new Environment());
     }
 
     @Override

@@ -83,7 +83,7 @@ Resources:
       MemorySize: 1408
       Policies:
         - AWSSecretsManagerGetSecretValuePolicy:
-            secretArn: !Ref UserServiceSecretArn
+            SecretArn: !Ref UserServiceSecretArn
       Environment:
         Variables:
           CUSTOMER_API_SCHEME: https

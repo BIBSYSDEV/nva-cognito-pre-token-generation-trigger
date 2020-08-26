@@ -45,6 +45,8 @@ public class UserApiClientTest {
     public static final String SAMPLE_INSTITUTION_ID = "institution.id";
     public static final String CREATOR = "Creator";
     public static final String THE_API_KEY = "TheApiKey";
+    public static final String SAMPLE_API_SCHEME = "http";
+    public static final String SAMPLE_API_HOST = "example.org";
 
     private ObjectMapper objectMapper;
     private UserApiClient userApiClient;
@@ -60,8 +62,8 @@ public class UserApiClientTest {
         objectMapper = new ObjectMapper();
         secretsReader = mock(SecretsReader.class);
         Environment environment = mock(Environment.class);
-        when(environment.readEnv(USER_API_SCHEME)).thenReturn(USER_API_SCHEME);
-        when(environment.readEnv(USER_API_HOST)).thenReturn(USER_API_HOST);
+        when(environment.readEnv(USER_API_SCHEME)).thenReturn(SAMPLE_API_SCHEME);
+        when(environment.readEnv(USER_API_HOST)).thenReturn(SAMPLE_API_HOST);
         when(environment.readEnv(USER_SERVICE_SECRET_NAME)).thenReturn(USER_SERVICE_SECRET_NAME);
         when(environment.readEnv(USER_SERVICE_SECRET_KEY)).thenReturn(USER_SERVICE_SECRET_KEY);
         httpClient = mock(HttpClient.class);

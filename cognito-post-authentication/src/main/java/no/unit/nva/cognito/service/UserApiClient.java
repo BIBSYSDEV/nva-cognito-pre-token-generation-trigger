@@ -37,6 +37,7 @@ public class UserApiClient implements UserApi {
     public static final String USER_SERVICE_SECRET_NAME = "USER_SERVICE_SECRET_NAME";
     public static final String USER_SERVICE_SECRET_KEY = "USER_SERVICE_SECRET_KEY";
     public static final String AUTHORIZATION = "Authorization";
+    public static final String DELIMITER = "/";
 
     private final ObjectMapper objectMapper;
     private final HttpClient httpClient;
@@ -65,6 +66,7 @@ public class UserApiClient implements UserApi {
     @Override
     public Optional<User> getUser(String username) {
         logger.info("Requesting user information for username: " + username);
+
         return fetchUserInformation(username)
             .stream()
             .filter(this::responseIsSuccessful)
@@ -141,7 +143,7 @@ public class UserApiClient implements UserApi {
         return new URIBuilder()
             .setScheme(userApiScheme)
             .setHost(userApiHost)
-            .setPath(PATH + username);
+            .setPath(String.join(DELIMITER, PATH, username));
     }
 
     private URIBuilder formUri() {

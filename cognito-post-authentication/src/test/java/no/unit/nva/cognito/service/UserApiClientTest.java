@@ -41,7 +41,7 @@ import org.junit.jupiter.api.Test;
 public class UserApiClientTest {
 
     public static final String GARBAGE_JSON = "{{}";
-    public static final String SAMPLE_USERNAME = "username";
+    public static final String SAMPLE_USERNAME = "user@name";
     public static final String SAMPLE_INSTITUTION_ID = "institution.id";
     public static final String CREATOR = "Creator";
     public static final String THE_API_KEY = "TheApiKey";

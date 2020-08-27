@@ -87,7 +87,7 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
     @Override
     public Map<String, Object> handleRequest(Map<String, Object> input, Context context) {
 
-        Event event = JsonUtils.objectMapper.convertValue(input, Event.class);
+        Event event = parseEventFromInput(input);
 
         String userPoolId = event.getUserPoolId();
         String userName = event.getUserName();
@@ -99,6 +99,17 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
         updateUserDetailsInUserPool(userPoolId, userName, userAttributes, user);
 
         return input;
+    }
+
+    /**
+     * Using ObjectMapper to convert input to Event because we are interested in only some input properties but have
+     * not way of telling Lambda's JSON parser to ignore the rest.
+     *
+     * @param input event json as map
+     * @return  event
+     */
+    private Event parseEventFromInput(Map<String, Object> input) {
+        return JsonUtils.objectMapper.convertValue(input, Event.class);
     }
 
     private void updateUserDetailsInUserPool(String userPoolId, String userName, UserAttributes userAttributes,

@@ -22,6 +22,15 @@ Parameters:
   CustomDomain:
     Type: String
     Description: Custom API to connect this lambda to
+  UserServiceSecretName:
+    Type: String
+    Description: Name of the Secret for Users and Role Service
+  UserServiceSecretKey:
+    Type: String
+    Description: Key in the Secret for Users and Role Service
+  UserServiceSecretArn:
+    Type: String
+    Description: ARN to the Secret for Users and Role Service
 
 Resources:
   
@@ -39,7 +48,7 @@ Resources:
       Policies:
         - PolicyName: writeLog
           PolicyDocument:
-            Version: 2012-10-17
+            Version: '2012-10-17'
             Statement:
               - Effect: Allow
                 Action:
@@ -56,6 +65,14 @@ Resources:
                   - cognito-idp:AdminAddUserToGroup
                   - cognito-idp:AdminUpdateUserAttributes
                 Resource: !Sub 'arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/*'
+        - PolicyName: GetSecretValue
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: !Ref UserServiceSecretArn
 
   InvokePostAuthenticationTriggerPermission:
     Type: AWS::Lambda::Permission
@@ -78,6 +95,8 @@ Resources:
           CUSTOMER_API_HOST: !Ref CustomDomain
           USER_API_SCHEME: https
           USER_API_HOST: !Ref CustomDomain
+          USER_SERVICE_SECRET_NAME: !Ref UserServiceSecretName
+          USER_SERVICE_SECRET_KEY: !Ref UserServiceSecretKey
 
 Outputs:
   CognitoPostAuthenticationFunction:

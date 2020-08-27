@@ -12,6 +12,7 @@ import com.amazonaws.services.cognitoidp.AWSCognitoIdentityProvider;
 import com.amazonaws.services.lambda.runtime.Context;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import no.unit.nva.cognito.model.Event;
 import no.unit.nva.cognito.model.Request;
@@ -22,8 +23,11 @@ import no.unit.nva.cognito.service.CustomerApi;
 import no.unit.nva.cognito.service.UserApi;
 import no.unit.nva.cognito.service.UserApiMock;
 import no.unit.nva.cognito.service.UserService;
+import nva.commons.utils.JsonUtils;
+import nva.commons.utils.aws.SecretsReader;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 @SuppressWarnings("unchecked")
 public class PostAuthenticationHandlerTest {
@@ -43,6 +47,7 @@ public class PostAuthenticationHandlerTest {
     private CustomerApi customerApi;
     private UserApi userApi;
     private UserService userService;
+    private SecretsReader secretsReader;
     private PostAuthenticationHandler handler;
     private AWSCognitoIdentityProvider awsCognitoIdentityProvider;
 
@@ -63,8 +68,8 @@ public class PostAuthenticationHandlerTest {
         prepareMocksWithExistingCustomer();
         prepareMocksWithExistingUser();
 
-        Event requestEvent = createRequestEvent();
-        final Event responseEvent = handler.handleRequest(requestEvent, mock(Context.class));
+        Map<String, Object> requestEvent = createRequestEvent();
+        final Map<String, Object> responseEvent = handler.handleRequest(requestEvent, mock(Context.class));
 
         verifyNumberOfAttributeUpdatesInCognito(1);
 
@@ -78,8 +83,8 @@ public class PostAuthenticationHandlerTest {
     public void handleRequestCreatesUserWithUserRoleWhenNoCustomerIsFound() {
         prepareMocksWithNoCustomer();
 
-        Event requestEvent = createRequestEvent();
-        final Event responseEvent = handler.handleRequest(requestEvent, mock(Context.class));
+        Map<String, Object> requestEvent = createRequestEvent();
+        final Map<String, Object> responseEvent = handler.handleRequest(requestEvent, mock(Context.class));
 
         verifyNumberOfAttributeUpdatesInCognito(1);
 
@@ -93,8 +98,8 @@ public class PostAuthenticationHandlerTest {
     public void handleRequestCreatesUserWithCreatorRoleForAffiliatedUser() {
         prepareMocksWithExistingCustomer();
 
-        Event requestEvent = createRequestEvent();
-        final Event responseEvent = handler.handleRequest(requestEvent, mock(Context.class));
+        Map<String, Object> requestEvent = createRequestEvent();
+        final Map<String, Object> responseEvent = handler.handleRequest(requestEvent, mock(Context.class));
 
         verifyNumberOfAttributeUpdatesInCognito(1);
 
@@ -108,9 +113,8 @@ public class PostAuthenticationHandlerTest {
     public void handleRequestCreatesUserWithCreatorRoleForNonAffiliatedUser() {
         prepareMocksWithExistingCustomer();
 
-        Event requestEvent = createRequestEvent();
-        setEmptyAffiliation(requestEvent, EMPTY_AFFILIATION);
-        final Event responseEvent = handler.handleRequest(requestEvent, mock(Context.class));
+        Map<String, Object> requestEvent = createRequestEventWithEmptyAffiliation();
+        final Map<String, Object> responseEvent = handler.handleRequest(requestEvent, mock(Context.class));
 
         verifyNumberOfAttributeUpdatesInCognito(1);
 
@@ -126,10 +130,6 @@ public class PostAuthenticationHandlerTest {
 
     private User getUserFromMock() {
         return userApi.getUser(SAMPLE_FEIDE_ID).get();
-    }
-
-    private void setEmptyAffiliation(Event event, String emptyAffiliation) {
-        event.getRequest().getUserAttributes().setAffiliation(emptyAffiliation);
     }
 
     private void prepareMocksWithExistingUser() {
@@ -172,7 +172,7 @@ public class PostAuthenticationHandlerTest {
             roles);
     }
 
-    private Event createRequestEvent() {
+    private Map<String, Object> createRequestEvent() {
         UserAttributes userAttributes = new UserAttributes();
         userAttributes.setFeideId(SAMPLE_FEIDE_ID);
         userAttributes.setOrgNumber(SAMPLE_ORG_NUMBER);
@@ -186,6 +186,23 @@ public class PostAuthenticationHandlerTest {
         event.setUserName(SAMPLE_USER_NAME);
         event.setRequest(request);
 
-        return event;
+        return JsonUtils.objectMapper.convertValue(event, Map.class);
+    }
+
+    private Map<String, Object> createRequestEventWithEmptyAffiliation() {
+        UserAttributes userAttributes = new UserAttributes();
+        userAttributes.setFeideId(SAMPLE_FEIDE_ID);
+        userAttributes.setOrgNumber(SAMPLE_ORG_NUMBER);
+        userAttributes.setAffiliation(EMPTY_AFFILIATION);
+
+        Request request = new Request();
+        request.setUserAttributes(userAttributes);
+
+        Event event = new Event();
+        event.setUserPoolId(SAMPLE_USER_POOL_ID);
+        event.setUserName(SAMPLE_USER_NAME);
+        event.setRequest(request);
+
+        return JsonUtils.objectMapper.convertValue(event, Map.class);
     }
 }

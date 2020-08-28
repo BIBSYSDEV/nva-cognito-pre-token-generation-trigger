@@ -25,6 +25,10 @@ public class CustomerApiClientTest {
     public static final String ORG_NUMBER = "orgNumber";
     public static final String GARBAGE_JSON = "{{}";
     public static final String SAMPLE_ID = "http://link.to.id";
+    public static final String CRISTIN_ID = "cristinId";
+    public static final String IDENTIFIER = "identifier";
+
+    public static final String RESPONSE_TEMPLATE = "{\"%s\":\"%s\"}";
 
     private CustomerApiClient customerApiClient;
     private HttpClient httpClient;
@@ -46,7 +50,7 @@ public class CustomerApiClientTest {
 
     @Test
     public void getCustomerReturnsCustomerIdentifierOnInput() throws IOException, InterruptedException {
-        when(httpResponse.body()).thenReturn(customerResponseWithIdentifier());
+        when(httpResponse.body()).thenReturn(String.format(RESPONSE_TEMPLATE, IDENTIFIER, SAMPLE_ID));
         when(httpResponse.statusCode()).thenReturn(SC_OK);
         when(httpClient.send(any(), any())).thenReturn(httpResponse);
 
@@ -57,7 +61,7 @@ public class CustomerApiClientTest {
 
     @Test
     public void getCustomerReturnsCristinIdOnInput() throws IOException, InterruptedException {
-        when(httpResponse.body()).thenReturn(customerResponseWithCristinId());
+        when(httpResponse.body()).thenReturn(String.format(RESPONSE_TEMPLATE, CRISTIN_ID, SAMPLE_ID));
         when(httpResponse.statusCode()).thenReturn(SC_OK);
         when(httpClient.send(any(), any())).thenReturn(httpResponse);
 
@@ -84,13 +88,5 @@ public class CustomerApiClientTest {
         Optional<CustomerResponse> customer = customerApiClient.getCustomer(ORG_NUMBER);
 
         assertTrue(customer.isEmpty());
-    }
-
-    private String customerResponseWithIdentifier() {
-        return "{\"identifier\":\"" + SAMPLE_ID + "\"}";
-    }
-
-    private String customerResponseWithCristinId() {
-        return "{\"cristinId\":\"" + SAMPLE_ID + "\"}";
     }
 }

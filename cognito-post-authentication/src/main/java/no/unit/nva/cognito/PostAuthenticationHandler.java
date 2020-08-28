@@ -98,8 +98,8 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
 
         Optional<CustomerResponse> customer = mapOrgNumberToCustomer(
             removeCountryPrefix(userAttributes.getOrgNumber()));
-        Optional<String> customerId = extractIdentifierFromCustomer(customer);
-        Optional<String> cristinId = extractCristinIdFromCustomer(customer);
+        Optional<String> customerId = customer.map(CustomerResponse::getIdentifier);
+        Optional<String> cristinId =  customer.map(CustomerResponse::getCristinId);
 
         User user = getUserFromCatalogueOrAddUser(userAttributes, customerId);
 
@@ -179,19 +179,4 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
             .map(Role::getRolename)
             .collect(Collectors.joining(COMMA_DELIMITER));
     }
-
-    private Optional<String> extractIdentifierFromCustomer(Optional<CustomerResponse> customer) {
-        if (customer.isPresent()) {
-            return Optional.ofNullable(customer.get().getIdentifier());
-        }
-        return Optional.empty();
-    }
-
-    private Optional<String> extractCristinIdFromCustomer(Optional<CustomerResponse> customer) {
-        if (customer.isPresent()) {
-            return Optional.ofNullable(customer.get().getCristinId());
-        }
-        return Optional.empty();
-    }
-
 }

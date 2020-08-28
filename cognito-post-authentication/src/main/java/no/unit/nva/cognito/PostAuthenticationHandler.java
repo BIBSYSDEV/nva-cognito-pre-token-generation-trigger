@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import no.unit.nva.cognito.model.CustomerResponse;
 import no.unit.nva.cognito.model.Event;
 import no.unit.nva.cognito.model.Role;
 import no.unit.nva.cognito.model.User;
@@ -34,6 +35,7 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
     public static final String CUSTOM_APPLICATION = "custom:application";
     public static final String CUSTOM_CUSTOMER_ID = "custom:customerId";
     public static final String CUSTOM_IDENTIFIERS = "custom:identifiers";
+    public static final String CUSTOM_CRISTIN_ID = "custom:cristinId";
 
     public static final String COMMA_DELIMITER = ",";
     public static final String FEIDE_PREFIX = "feide:";
@@ -94,9 +96,14 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
 
         UserAttributes userAttributes = event.getRequest().getUserAttributes();
 
-        User user = getUserFromCatalogueOrAddUser(userAttributes);
+        Optional<CustomerResponse> customer = mapOrgNumberToCustomer(
+            removeCountryPrefix(userAttributes.getOrgNumber()));
+        Optional<String> customerId = extractIdentifierFromCustomer(customer);
+        Optional<String> cristinId = extractCristinIdFromCustomer(customer);
 
-        updateUserDetailsInUserPool(userPoolId, userName, userAttributes, user);
+        User user = getUserFromCatalogueOrAddUser(userAttributes, customerId);
+
+        updateUserDetailsInUserPool(userPoolId, userName, userAttributes, user, cristinId);
 
         return input;
     }
@@ -112,30 +119,39 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
         return JsonUtils.objectMapper.convertValue(input, Event.class);
     }
 
-    private void updateUserDetailsInUserPool(String userPoolId, String userName, UserAttributes userAttributes,
-                                             User user) {
+    private void updateUserDetailsInUserPool(String userPoolId,
+                                             String userName,
+                                             UserAttributes userAttributes,
+                                             User user,
+                                             Optional<String> cristinId) {
+
+
         userService.updateUserAttributes(
             userPoolId,
             userName,
-            createUserAttributes(userAttributes, user));
+            createUserAttributes(userAttributes, user, cristinId));
     }
 
-    private User getUserFromCatalogueOrAddUser(UserAttributes userAttributes) {
+    private User getUserFromCatalogueOrAddUser(UserAttributes userAttributes, Optional<String> customerId) {
         String feideId = userAttributes.getFeideId();
-        Optional<String> customerId = mapOrgNumberToCustomerId(removeCountryPrefix(userAttributes.getOrgNumber()));
         String affiliation = userAttributes.getAffiliation();
         return userService.getOrCreateUser(feideId, customerId, affiliation);
     }
 
-    private Optional<String> mapOrgNumberToCustomerId(String orgNumber) {
-        return customerApi.getCustomerId(orgNumber);
+    private Optional<CustomerResponse> mapOrgNumberToCustomer(String orgNumber) {
+        return customerApi.getCustomer(orgNumber);
     }
 
-    private List<AttributeType> createUserAttributes(UserAttributes userAttributes, User user) {
+    private List<AttributeType> createUserAttributes(UserAttributes userAttributes,
+                                                     User user,
+                                                     Optional<String> cristinId) {
         List<AttributeType> userAttributeTypes = new ArrayList<>();
 
         if (user.getInstitution() != null) {
             userAttributeTypes.add(toAttributeType(CUSTOM_CUSTOMER_ID, user.getInstitution()));
+        }
+        if (cristinId.isPresent()) {
+            userAttributeTypes.add(toAttributeType(CUSTOM_CRISTIN_ID, cristinId.get()));
         }
         userAttributeTypes.add(toAttributeType(CUSTOM_APPLICATION, NVA));
         userAttributeTypes.add(toAttributeType(CUSTOM_IDENTIFIERS, FEIDE_PREFIX + userAttributes.getFeideId()));
@@ -162,6 +178,20 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
             .stream()
             .map(Role::getRolename)
             .collect(Collectors.joining(COMMA_DELIMITER));
+    }
+
+    private Optional<String> extractIdentifierFromCustomer(Optional<CustomerResponse> customer) {
+        if (customer.isPresent()) {
+            return Optional.ofNullable(customer.get().getIdentifier());
+        }
+        return Optional.empty();
+    }
+
+    private Optional<String> extractCristinIdFromCustomer(Optional<CustomerResponse> customer) {
+        if (customer.isPresent()) {
+            return Optional.ofNullable(customer.get().getCristinId());
+        }
+        return Optional.empty();
     }
 
 }

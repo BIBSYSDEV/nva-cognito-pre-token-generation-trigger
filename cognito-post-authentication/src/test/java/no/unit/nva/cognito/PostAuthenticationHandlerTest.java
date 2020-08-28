@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import no.unit.nva.cognito.model.CustomerResponse;
 import no.unit.nva.cognito.model.Event;
 import no.unit.nva.cognito.model.Request;
 import no.unit.nva.cognito.model.Role;
@@ -43,6 +44,7 @@ public class PostAuthenticationHandlerTest {
 
     public static final String CREATOR = "Creator";
     public static final String USER = "User";
+    public static final String SAMPLE_CRISTIN_ID = "http://cristin.id";
 
     private CustomerApi customerApi;
     private UserApi userApi;
@@ -137,11 +139,12 @@ public class PostAuthenticationHandlerTest {
     }
 
     private void prepareMocksWithExistingCustomer() {
-        when(customerApi.getCustomerId(anyString())).thenReturn(Optional.of(SAMPLE_CUSTOMER_ID));
+        when(customerApi.getCustomer(anyString())).thenReturn(Optional.of(new CustomerResponse(SAMPLE_CUSTOMER_ID,
+            SAMPLE_CRISTIN_ID)));
     }
 
     private void prepareMocksWithNoCustomer() {
-        when(customerApi.getCustomerId(anyString())).thenReturn(Optional.empty());
+        when(customerApi.getCustomer(anyString())).thenReturn(Optional.empty());
     }
 
     private User createUserWithOnlyUserRole() {

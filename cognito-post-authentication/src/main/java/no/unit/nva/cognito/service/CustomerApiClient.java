@@ -46,13 +46,12 @@ public class CustomerApiClient implements CustomerApi {
     }
 
     @Override
-    public Optional<String> getCustomerId(String orgNumber) {
+    public Optional<CustomerResponse> getCustomer(String orgNumber) {
         logger.info("Requesting customer information for orgNumber: " + orgNumber);
         return fetchCustomerInformation(orgNumber)
             .stream()
             .filter(responseIsSuccessful())
             .map(tryParsingCustomer())
-            .map(this::extractIdentifier)
             .findAny()
             .flatMap(this::getValueOrLogError);
     }
@@ -75,15 +74,11 @@ public class CustomerApiClient implements CustomerApi {
         return resp -> resp.statusCode() == HttpStatus.SC_OK;
     }
 
-    private Try<String> extractIdentifier(Try<CustomerResponse> effort) {
-        return effort.map(CustomerResponse::getIdentifier);
-    }
-
-    private Optional<String> getValueOrLogError(Try<String> valueTry) {
+    private Optional<CustomerResponse> getValueOrLogError(Try<CustomerResponse> valueTry) {
         return valueTry.toOptional(logErrorParsingCustomerInformation());
     }
 
-    private ConsumerWithException<Failure<String>, RuntimeException> logErrorParsingCustomerInformation() {
+    private ConsumerWithException<Failure<CustomerResponse>, RuntimeException> logErrorParsingCustomerInformation() {
         return failure -> logger.error("Error parsing customer information");
     }
 

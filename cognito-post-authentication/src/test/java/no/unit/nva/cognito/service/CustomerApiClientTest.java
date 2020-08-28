@@ -12,7 +12,7 @@ import java.io.IOException;
 import java.net.http.HttpClient;
 import java.net.http.HttpResponse;
 import java.util.Optional;
-import java.util.UUID;
+import no.unit.nva.cognito.model.CustomerResponse;
 import nva.commons.utils.Environment;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,6 +24,11 @@ public class CustomerApiClientTest {
     public static final String EXAMPLE_ORG = "example.org";
     public static final String ORG_NUMBER = "orgNumber";
     public static final String GARBAGE_JSON = "{{}";
+    public static final String SAMPLE_ID = "http://link.to.id";
+    public static final String CRISTIN_ID = "cristinId";
+    public static final String IDENTIFIER = "identifier";
+
+    public static final String RESPONSE_TEMPLATE = "{\"%s\":\"%s\"}";
 
     private CustomerApiClient customerApiClient;
     private HttpClient httpClient;
@@ -44,34 +49,44 @@ public class CustomerApiClientTest {
     }
 
     @Test
-    public void getCustomerIdReturnsCustomerIdOnInput() throws IOException, InterruptedException {
-        UUID uuid = UUID.randomUUID();
-        when(httpResponse.body()).thenReturn("{\"identifier\":\"" + uuid.toString() + "\"}");
+    public void getCustomerReturnsCustomerIdentifierOnInput() throws IOException, InterruptedException {
+        when(httpResponse.body()).thenReturn(String.format(RESPONSE_TEMPLATE, IDENTIFIER, SAMPLE_ID));
         when(httpResponse.statusCode()).thenReturn(SC_OK);
         when(httpClient.send(any(), any())).thenReturn(httpResponse);
 
-        Optional<String> customerId = customerApiClient.getCustomerId(ORG_NUMBER);
+        Optional<CustomerResponse> customer = customerApiClient.getCustomer(ORG_NUMBER);
 
-        assertEquals(uuid.toString(), customerId.get());
+        assertEquals(SAMPLE_ID, customer.get().getIdentifier());
     }
 
     @Test
-    public void getCustomerIdReturnsEmptyOptionalOnInvalidJsonResponse() throws IOException, InterruptedException {
+    public void getCustomerReturnsCristinIdOnInput() throws IOException, InterruptedException {
+        when(httpResponse.body()).thenReturn(String.format(RESPONSE_TEMPLATE, CRISTIN_ID, SAMPLE_ID));
+        when(httpResponse.statusCode()).thenReturn(SC_OK);
+        when(httpClient.send(any(), any())).thenReturn(httpResponse);
+
+        Optional<CustomerResponse> customer = customerApiClient.getCustomer(ORG_NUMBER);
+
+        assertEquals(SAMPLE_ID, customer.get().getCristinId());
+    }
+
+    @Test
+    public void getCustomerReturnsEmptyOptionalOnInvalidJsonResponse() throws IOException, InterruptedException {
         when(httpResponse.body()).thenReturn(GARBAGE_JSON);
         when(httpResponse.statusCode()).thenReturn(SC_OK);
         when(httpClient.send(any(), any())).thenReturn(httpResponse);
 
-        Optional<String> customerId = customerApiClient.getCustomerId(ORG_NUMBER);
+        Optional<CustomerResponse> customer = customerApiClient.getCustomer(ORG_NUMBER);
 
-        assertTrue(customerId.isEmpty());
+        assertTrue(customer.isEmpty());
     }
 
     @Test
-    public void getCustomerIdReturnsEmptyOptionalOnInvalidHttpResponse() throws IOException, InterruptedException {
+    public void getCustomerReturnsEmptyOptionalOnInvalidHttpResponse() throws IOException, InterruptedException {
         when(httpClient.send(any(), any())).thenThrow(IOException.class);
 
-        Optional<String> customerId = customerApiClient.getCustomerId(ORG_NUMBER);
+        Optional<CustomerResponse> customer = customerApiClient.getCustomer(ORG_NUMBER);
 
-        assertTrue(customerId.isEmpty());
+        assertTrue(customer.isEmpty());
     }
 }

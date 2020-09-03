@@ -133,9 +133,13 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
     }
 
     private User getUserFromCatalogueOrAddUser(UserAttributes userAttributes, Optional<String> customerId) {
-        String feideId = userAttributes.getFeideId();
-        String affiliation = userAttributes.getAffiliation();
-        return userService.getOrCreateUser(feideId, customerId, affiliation);
+        return userService.getOrCreateUser(
+            userAttributes.getFeideId(),
+            userAttributes.getGivenName(),
+            userAttributes.getFamilyName(),
+            customerId,
+            userAttributes.getAffiliation()
+        );
     }
 
     private Optional<CustomerResponse> mapOrgNumberToCustomer(String orgNumber) {

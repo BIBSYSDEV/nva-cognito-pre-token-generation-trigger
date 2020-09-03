@@ -25,10 +25,8 @@ import no.unit.nva.cognito.service.UserApi;
 import no.unit.nva.cognito.service.UserApiMock;
 import no.unit.nva.cognito.service.UserService;
 import nva.commons.utils.JsonUtils;
-import nva.commons.utils.aws.SecretsReader;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 
 @SuppressWarnings("unchecked")
 public class PostAuthenticationHandlerTest {
@@ -41,6 +39,8 @@ public class PostAuthenticationHandlerTest {
 
     public static final String SAMPLE_USER_POOL_ID = "userPoolId";
     public static final String SAMPLE_USER_NAME = "userName";
+    public static final String SAMPLE_GIVEN_NAME = "givenName";
+    public static final String SAMPLE_FAMILY_NAME = "familyName";
 
     public static final String CREATOR = "Creator";
     public static final String USER = "User";
@@ -49,7 +49,6 @@ public class PostAuthenticationHandlerTest {
     private CustomerApi customerApi;
     private UserApi userApi;
     private UserService userService;
-    private SecretsReader secretsReader;
     private PostAuthenticationHandler handler;
     private AWSCognitoIdentityProvider awsCognitoIdentityProvider;
 
@@ -152,6 +151,8 @@ public class PostAuthenticationHandlerTest {
         roles.add(new Role(USER));
         return new User(
             SAMPLE_FEIDE_ID,
+            SAMPLE_GIVEN_NAME,
+            SAMPLE_FAMILY_NAME,
             null,
             roles);
     }
@@ -162,6 +163,8 @@ public class PostAuthenticationHandlerTest {
         roles.add(new Role(USER));
         return new User(
             SAMPLE_FEIDE_ID,
+            SAMPLE_GIVEN_NAME,
+            SAMPLE_FAMILY_NAME,
             SAMPLE_CUSTOMER_ID,
             roles);
     }
@@ -171,6 +174,8 @@ public class PostAuthenticationHandlerTest {
         roles.add(new Role(USER));
         return new User(
             SAMPLE_FEIDE_ID,
+            SAMPLE_GIVEN_NAME,
+            SAMPLE_FAMILY_NAME,
             SAMPLE_CUSTOMER_ID,
             roles);
     }
@@ -180,6 +185,8 @@ public class PostAuthenticationHandlerTest {
         userAttributes.setFeideId(SAMPLE_FEIDE_ID);
         userAttributes.setOrgNumber(SAMPLE_ORG_NUMBER);
         userAttributes.setAffiliation(SAMPLE_AFFILIATION);
+        userAttributes.setGivenName(SAMPLE_GIVEN_NAME);
+        userAttributes.setFamilyName(SAMPLE_FAMILY_NAME);
 
         Request request = new Request();
         request.setUserAttributes(userAttributes);
@@ -197,6 +204,8 @@ public class PostAuthenticationHandlerTest {
         userAttributes.setFeideId(SAMPLE_FEIDE_ID);
         userAttributes.setOrgNumber(SAMPLE_ORG_NUMBER);
         userAttributes.setAffiliation(EMPTY_AFFILIATION);
+        userAttributes.setGivenName(SAMPLE_GIVEN_NAME);
+        userAttributes.setFamilyName(SAMPLE_FAMILY_NAME);
 
         Request request = new Request();
         request.setUserAttributes(userAttributes);

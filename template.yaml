@@ -7,8 +7,8 @@ Description: >
 
 Metadata:
   AWS::ServerlessRepo::Application:
-    Name: NvaInfrastructureFunctions
-    Description: NVA Infrastructure Functions
+    Name: NvaCognitoPostAuthenticationTrigger
+    Description: NVA Cognito Post Authentication Trigger
     Author: Unit
     SpdxLicenseId: MIT
     LicenseUrl: LICENSE

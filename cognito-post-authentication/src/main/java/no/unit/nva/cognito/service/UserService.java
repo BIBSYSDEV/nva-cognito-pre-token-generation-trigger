@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 
 public class UserService {
 
+    public static final String NO_ROLE = null;
     private final UserApi userApi;
     private final AWSCognitoIdentityProvider awsCognitoIdentityProvider;
 
@@ -22,8 +23,6 @@ public class UserService {
     public static final String EMPLOYEE = "employee";
     public static final String MEMBER = "member";
     public static final String STAFF = "staff";
-
-    public static final String ROLE_GROUP_TEMPLATE = "%sGroup";
 
     private static final Logger logger = LoggerFactory.getLogger(UserService.class);
 
@@ -37,14 +36,20 @@ public class UserService {
      * Get user from user catalogue service or create new user if not found.
      *
      * @param feideId       feideId as username
+     * @param givenName     givenName
+     * @param familyName    familyName
      * @param customerId    customerId as institution
      * @param affiliation   affiliation
      * @return  the user
      */
-    public User getOrCreateUser(String feideId, Optional<String> customerId, String affiliation) {
+    public User getOrCreateUser(String feideId,
+                                String givenName,
+                                String familyName,
+                                Optional<String> customerId,
+                                String affiliation) {
         return userApi
             .getUser(feideId)
-            .orElseGet(() -> createUser(feideId, customerId, affiliation));
+            .orElseGet(() -> createUser(feideId, givenName, familyName, customerId, affiliation));
     }
 
     /**
@@ -63,25 +68,33 @@ public class UserService {
         awsCognitoIdentityProvider.adminUpdateUserAttributes(request);
     }
 
-    private User createUser(String username, Optional<String> customerId, String affiliation) {
+    private User createUser(String username,
+                            String givenName,
+                            String familyName,
+                            Optional<String> customerId,
+                            String affiliation) {
         User user;
         if (customerId.isPresent()) {
-            user = createUserForInstitution(username, customerId.get(), affiliation);
+            user = createUserForInstitution(username, givenName, familyName, customerId.get(), affiliation);
         } else {
-            user = createUserWithoutInstitution(username);
+            user = createUserWithoutInstitution(username, givenName, familyName);
         }
         userApi.createUser(user);
         return user;
     }
 
-    private User createUserWithoutInstitution(String username) {
-        return new User(username, null, Collections.singletonList(new Role(USER)));
+    private User createUserWithoutInstitution(String username, String givenName, String familyName) {
+        return new User(username, givenName, familyName, NO_ROLE, Collections.singletonList(new Role(USER)));
     }
 
-    private User createUserForInstitution(String username, String institutionId, String affiliation) {
+    private User createUserForInstitution(String username,
+                                          String givenName,
+                                          String familyName,
+                                          String institutionId,
+                                          String affiliation) {
         List<Role> roles = createRolesFromAffiliation(affiliation);
         roles.add(new Role(USER));
-        return new User(username, institutionId, roles);
+        return new User(username, givenName, familyName, institutionId, roles);
     }
 
     private List<Role> createRolesFromAffiliation(String affiliation) {

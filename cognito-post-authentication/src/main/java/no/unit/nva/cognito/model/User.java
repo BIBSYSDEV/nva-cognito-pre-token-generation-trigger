@@ -11,20 +11,34 @@ import nva.commons.utils.JacocoGenerated;
 public class User {
 
     private final String username;
+    private final String givenName;
+    private final String familyName;
     private final String institution;
     private final List<Role> roles;
     
     @JsonCreator
     public User(@JsonProperty("username") String username,
+                @JsonProperty("givenName") String givenName,
+                @JsonProperty("familyName") String familyName,
                 @JsonProperty("institution") String institution,
                 @JsonProperty("roles") List<Role> roles) {
         this.username = username;
+        this.givenName = givenName;
+        this.familyName = familyName;
         this.institution = institution;
         this.roles = roles;
     }
 
     public String getUsername() {
         return username;
+    }
+
+    public String getGivenName() {
+        return givenName;
+    }
+
+    public String getFamilyName() {
+        return familyName;
     }
 
     public String getInstitution() {
@@ -46,6 +60,8 @@ public class User {
         }
         User user = (User) o;
         return Objects.equals(getUsername(), user.getUsername())
+            && Objects.equals(getGivenName(), user.getGivenName())
+            && Objects.equals(getFamilyName(), user.getFamilyName())
             && Objects.equals(getInstitution(), user.getInstitution())
             && Objects.equals(getRoles(), user.getRoles());
     }
@@ -53,6 +69,10 @@ public class User {
     @Override
     @JacocoGenerated
     public int hashCode() {
-        return Objects.hash(getUsername(), getInstitution(), getRoles());
+        return Objects.hash(getUsername(),
+            getGivenName(),
+            getFamilyName(),
+            getInstitution(),
+            getRoles());
     }
 }

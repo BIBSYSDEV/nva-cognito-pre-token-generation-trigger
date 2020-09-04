@@ -1,5 +1,6 @@
 package no.unit.nva.cognito.service;
 
+import static java.util.Collections.singletonList;
 import static no.unit.nva.cognito.service.UserApiClient.ERROR_FETCHING_USER_INFORMATION;
 import static no.unit.nva.cognito.service.UserApiClient.ERROR_PARSING_USER_INFORMATION;
 import static no.unit.nva.cognito.service.UserApiClient.USER_API_HOST;
@@ -23,7 +24,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.net.http.HttpClient;
 import java.net.http.HttpResponse;
-import java.util.Collections;
 import java.util.Optional;
 import no.unit.nva.cognito.exception.CreateUserFailedException;
 import no.unit.nva.cognito.model.Role;
@@ -47,6 +47,8 @@ public class UserApiClientTest {
     public static final String THE_API_KEY = "TheApiKey";
     public static final String SAMPLE_API_SCHEME = "http";
     public static final String SAMPLE_API_HOST = "example.org";
+    public static final String SAMPLE_FAMILY_NAME = "familyName";
+    public static final String SAMPLE_GIVEN_NAME = "givenName";
 
     private ObjectMapper objectMapper;
     private UserApiClient userApiClient;
@@ -163,7 +165,10 @@ public class UserApiClientTest {
     private User createUser() {
         return new User(
             SAMPLE_USERNAME,
-            SAMPLE_INSTITUTION_ID, Collections.singletonList(new Role(CREATOR))
+            SAMPLE_GIVEN_NAME,
+            SAMPLE_FAMILY_NAME,
+            SAMPLE_INSTITUTION_ID,
+            singletonList(new Role(CREATOR))
         );
     }
 }

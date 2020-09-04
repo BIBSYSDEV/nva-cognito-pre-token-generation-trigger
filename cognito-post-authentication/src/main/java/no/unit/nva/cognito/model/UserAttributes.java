@@ -13,6 +13,12 @@ public class UserAttributes {
     @JsonProperty("custom:affiliation")
     private String affiliation;
 
+    @JsonProperty("given_name")
+    private String givenName;
+
+    @JsonProperty("family_name")
+    private String familyName;
+
     public String getFeideId() {
         return feideId;
     }
@@ -35,5 +41,21 @@ public class UserAttributes {
 
     public void setAffiliation(String affiliation) {
         this.affiliation = affiliation;
+    }
+
+    public String getGivenName() {
+        return givenName;
+    }
+
+    public void setGivenName(String givenName) {
+        this.givenName = givenName;
+    }
+
+    public String getFamilyName() {
+        return familyName;
+    }
+
+    public void setFamilyName(String familyName) {
+        this.familyName = familyName;
     }
 }

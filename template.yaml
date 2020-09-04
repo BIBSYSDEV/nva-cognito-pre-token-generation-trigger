@@ -89,6 +89,7 @@ Resources:
       Runtime: java11
       Role: !GetAtt TriggerExecutionRole.Arn
       MemorySize: 1408
+      Timeout: 10
       Environment:
         Variables:
           CUSTOMER_API_SCHEME: https

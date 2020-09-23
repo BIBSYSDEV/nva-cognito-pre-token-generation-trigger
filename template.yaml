@@ -78,7 +78,7 @@ Resources:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !Ref PostAuthenticationTrigger
+      FunctionName: !Ref PreTokenGenerationTrigger
       Principal: cognito-idp.amazonaws.com
 
   PreTokenGenerationTrigger:

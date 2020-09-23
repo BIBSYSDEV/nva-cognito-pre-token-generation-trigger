@@ -81,7 +81,7 @@ Resources:
       FunctionName: !Ref PostAuthenticationTrigger
       Principal: cognito-idp.amazonaws.com
 
-  PostAuthenticationTrigger:
+  PreTokenGenerationTrigger:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: cognito-pre-token-generation

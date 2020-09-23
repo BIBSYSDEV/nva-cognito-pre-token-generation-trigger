@@ -7,8 +7,8 @@ Description: >
 
 Metadata:
   AWS::ServerlessRepo::Application:
-    Name: NvaCognitoPostAuthenticationTrigger
-    Description: NVA Cognito Post Authentication Trigger
+    Name: NvaCognitoPreTokenGenerationTrigger
+    Description: NVA Cognito Pre Token Generation Trigger
     Author: Unit
     SpdxLicenseId: MIT
     LicenseUrl: LICENSE
@@ -84,7 +84,7 @@ Resources:
   PostAuthenticationTrigger:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: cognito-post-authentication
+      CodeUri: cognito-pre-generation-token
       Handler: no.unit.nva.cognito.PostAuthenticationHandler::handleRequest
       Runtime: java11
       Role: !GetAtt TriggerExecutionRole.Arn
@@ -103,6 +103,8 @@ Resources:
           USER_SERVICE_SECRET_KEY: !Ref UserServiceSecretKey
 
 Outputs:
-  CognitoPostAuthenticationFunction:
-    Description: ARN Identifier of the PostAuthenticationTrigger
-    Value: !GetAtt PostAuthenticationTrigger.Arn
+  CognitoPreTokenGenerationFunction:
+    Description: ARN Identifier of the PreTokenGenerationTrigger
+    Value: !GetAtt PreTokenGenerationTrigger.Arn
+    Export:
+      Name: CognitoPreTokenGenerationFunctionArn

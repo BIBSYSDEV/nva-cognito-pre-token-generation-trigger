@@ -1,2 +1,2 @@
-rootProject.name = 'cognito-pre-generation-token'
-include 'cognito-pre-generation-token'
+rootProject.name = 'cognito-pre-token-generation'
+include 'cognito-pre-token-generation'

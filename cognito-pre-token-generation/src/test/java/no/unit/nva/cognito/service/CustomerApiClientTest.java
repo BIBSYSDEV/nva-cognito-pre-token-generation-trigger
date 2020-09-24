@@ -36,7 +36,7 @@ public class CustomerApiClientTest {
     public static final String GARBAGE_JSON = "{{}";
     public static final String SAMPLE_ID = "http://link.to.id";
     public static final String CRISTIN_ID = "cristinId";
-    public static final String IDENTIFIER = "identifier";
+    public static final String CUSTOMER_ID = "customerId";
 
     public static final String RESPONSE_TEMPLATE = "{\"%s\":\"%s\"}";
     public static final Object NO_BODY = null;
@@ -61,7 +61,7 @@ public class CustomerApiClientTest {
 
     @Test
     public void getCustomerReturnsCustomerIdentifierOnInput() throws IOException, InterruptedException {
-        when(httpResponse.body()).thenReturn(generateValidCustomerResponse(IDENTIFIER));
+        when(httpResponse.body()).thenReturn(generateValidCustomerResponse(CUSTOMER_ID));
         when(httpResponse.statusCode()).thenReturn(SC_OK);
         when(httpClient.send(any(), any())).thenReturn(httpResponse);
 

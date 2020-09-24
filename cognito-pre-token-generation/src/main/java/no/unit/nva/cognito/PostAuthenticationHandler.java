@@ -98,7 +98,7 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
 
         Optional<CustomerResponse> customer = mapOrgNumberToCustomer(
             removeCountryPrefix(userAttributes.getOrgNumber()));
-        Optional<String> customerId = customer.map(CustomerResponse::getIdentifier);
+        Optional<String> customerId = customer.map(CustomerResponse::getCustomerId);
         Optional<String> cristinId =  customer.map(CustomerResponse::getCristinId);
 
         User user = getUserFromCatalogueOrAddUser(userAttributes, customerId);

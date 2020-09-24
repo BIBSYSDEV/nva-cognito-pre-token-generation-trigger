@@ -67,7 +67,7 @@ public class CustomerApiClientTest {
 
         Optional<CustomerResponse> customer = customerApiClient.getCustomer(ORG_NUMBER);
 
-        assertEquals(SAMPLE_ID, customer.get().getIdentifier());
+        assertEquals(SAMPLE_ID, customer.get().getCustomerId());
     }
 
     @Test

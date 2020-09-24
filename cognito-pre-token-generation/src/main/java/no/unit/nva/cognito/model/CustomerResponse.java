@@ -5,19 +5,19 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class CustomerResponse {
 
-    private final String identifier;
+    private final String customerId;
     private final String cristinId;
 
     @JsonCreator
     public CustomerResponse(
-        @JsonProperty("identifier") String identifier,
+        @JsonProperty("customerId") String customerId,
         @JsonProperty("cristinId") String cristinId) {
-        this.identifier = identifier;
+        this.customerId = customerId;
         this.cristinId = cristinId;
     }
 
-    public String getIdentifier() {
-        return identifier;
+    public String getCustomerId() {
+        return customerId;
     }
 
     public String getCristinId() {

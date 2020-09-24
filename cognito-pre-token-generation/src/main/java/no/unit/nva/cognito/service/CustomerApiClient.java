@@ -1,7 +1,5 @@
 package no.unit.nva.cognito.service;
 
-import static nva.commons.utils.attempt.Try.attempt;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
@@ -11,8 +9,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.util.Optional;
-import java.util.function.Function;
-import java.util.function.Predicate;
+import java.util.function.Supplier;
 import no.unit.nva.cognito.model.CustomerResponse;
 import nva.commons.utils.Environment;
 import nva.commons.utils.attempt.ConsumerWithException;
@@ -28,13 +25,11 @@ public class CustomerApiClient implements CustomerApi {
     public static final String PATH = "/customer/orgNumber/";
     public static final String CUSTOMER_API_SCHEME = "CUSTOMER_API_SCHEME";
     public static final String CUSTOMER_API_HOST = "CUSTOMER_API_HOST";
-
+    private static final Logger logger = LoggerFactory.getLogger(CustomerApiClient.class);
     private final ObjectMapper objectMapper;
     private final HttpClient httpClient;
     private final String customerApiScheme;
     private final String customerApiHost;
-
-    private static final Logger logger = LoggerFactory.getLogger(CustomerApiClient.class);
 
     public CustomerApiClient(HttpClient httpClient,
                              ObjectMapper objectMapper,
@@ -48,15 +43,27 @@ public class CustomerApiClient implements CustomerApi {
     @Override
     public Optional<CustomerResponse> getCustomer(String orgNumber) {
         logger.info("Requesting customer information for orgNumber: " + orgNumber);
-        return fetchCustomerInformation(orgNumber)
-            .stream()
-            .filter(responseIsSuccessful())
-            .map(tryParsingCustomer())
-            .findAny()
-            .flatMap(this::getValueOrLogError);
+        try {
+            var response = fetchCustomerInformation(orgNumber)
+                .orElseThrow(getHttpClientInitializationError());
+            if (response.statusCode() == HttpStatus.SC_NOT_FOUND) {
+                return Optional.empty();
+            }
+            if (response.statusCode() != HttpStatus.SC_OK) {
+                logger.error("Error fetching customer information, API response was {}", response.statusCode());
+                throw new IllegalStateException("Error fetching customer information");
+            }
+            return Optional.ofNullable(this.parseCustomer(response));
+        } catch (JsonProcessingException e) {
+            logger.error("Error parsing customer information", e);
+            throw new IllegalStateException("Error parsing customer information");
+        }
     }
 
-
+    private Supplier<IllegalStateException> getHttpClientInitializationError() {
+        return () ->
+            new IllegalStateException("Error fetching customer information, http client failed to initialize.");
+    }
 
     private Optional<HttpResponse<String>> fetchCustomerInformation(String orgNumber) {
         return Try.of(formUri(orgNumber))
@@ -64,22 +71,6 @@ public class CustomerApiClient implements CustomerApi {
             .map(this::buildHttpRequest)
             .map(this::sendHttpRequest)
             .toOptional(logResponseError());
-    }
-
-    private Function<HttpResponse<String>, Try<CustomerResponse>> tryParsingCustomer() {
-        return attempt(this::parseCustomer);
-    }
-
-    private Predicate<HttpResponse<String>> responseIsSuccessful() {
-        return resp -> resp.statusCode() == HttpStatus.SC_OK;
-    }
-
-    private Optional<CustomerResponse> getValueOrLogError(Try<CustomerResponse> valueTry) {
-        return valueTry.toOptional(logErrorParsingCustomerInformation());
-    }
-
-    private ConsumerWithException<Failure<CustomerResponse>, RuntimeException> logErrorParsingCustomerInformation() {
-        return failure -> logger.error("Error parsing customer information");
     }
 
     private ConsumerWithException<Failure<HttpResponse<String>>, RuntimeException> logResponseError() {

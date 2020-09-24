@@ -1,12 +1,19 @@
 package no.unit.nva.cognito.service;
 
+import static org.apache.http.HttpStatus.SC_BAD_GATEWAY;
+import static org.apache.http.HttpStatus.SC_NOT_FOUND;
 import static org.apache.http.HttpStatus.SC_OK;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.net.http.HttpClient;
@@ -14,8 +21,11 @@ import java.net.http.HttpResponse;
 import java.util.Optional;
 import no.unit.nva.cognito.model.CustomerResponse;
 import nva.commons.utils.Environment;
+import nva.commons.utils.JsonUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.zalando.problem.Problem;
+import org.zalando.problem.Status;
 
 @SuppressWarnings("unchecked")
 public class CustomerApiClientTest {
@@ -29,7 +39,8 @@ public class CustomerApiClientTest {
     public static final String IDENTIFIER = "identifier";
 
     public static final String RESPONSE_TEMPLATE = "{\"%s\":\"%s\"}";
-
+    public static final Object NO_BODY = null;
+    private static final ObjectMapper objectMapper = JsonUtils.objectMapper;
     private CustomerApiClient customerApiClient;
     private HttpClient httpClient;
     private HttpResponse httpResponse;
@@ -50,7 +61,7 @@ public class CustomerApiClientTest {
 
     @Test
     public void getCustomerReturnsCustomerIdentifierOnInput() throws IOException, InterruptedException {
-        when(httpResponse.body()).thenReturn(String.format(RESPONSE_TEMPLATE, IDENTIFIER, SAMPLE_ID));
+        when(httpResponse.body()).thenReturn(generateValidCustomerResponse(IDENTIFIER));
         when(httpResponse.statusCode()).thenReturn(SC_OK);
         when(httpClient.send(any(), any())).thenReturn(httpResponse);
 
@@ -61,7 +72,7 @@ public class CustomerApiClientTest {
 
     @Test
     public void getCustomerReturnsCristinIdOnInput() throws IOException, InterruptedException {
-        when(httpResponse.body()).thenReturn(String.format(RESPONSE_TEMPLATE, CRISTIN_ID, SAMPLE_ID));
+        when(httpResponse.body()).thenReturn(generateValidCustomerResponse(CRISTIN_ID));
         when(httpResponse.statusCode()).thenReturn(SC_OK);
         when(httpClient.send(any(), any())).thenReturn(httpResponse);
 
@@ -71,9 +82,44 @@ public class CustomerApiClientTest {
     }
 
     @Test
-    public void getCustomerReturnsEmptyOptionalOnInvalidJsonResponse() throws IOException, InterruptedException {
+    public void getCustomerThrowsIllegalStateExceptionOnInvalidJsonResponse() throws IOException, InterruptedException {
         when(httpResponse.body()).thenReturn(GARBAGE_JSON);
         when(httpResponse.statusCode()).thenReturn(SC_OK);
+        when(httpClient.send(any(), any())).thenReturn(httpResponse);
+
+        var exception = assertThrows(IllegalStateException.class, () -> customerApiClient
+            .getCustomer(ORG_NUMBER));
+        assertThat(exception.getMessage(), is(equalTo("Error parsing customer information")));
+    }
+
+    @Test
+    public void getCustomerThrowsIllegalStateExceptionOnNonSuccessfullHttpResponse()
+        throws IOException, InterruptedException {
+        when(httpResponse.statusCode()).thenReturn(SC_BAD_GATEWAY);
+        when(httpResponse.body()).thenReturn(NO_BODY);
+        when(httpClient.send(any(), any())).thenReturn(httpResponse);
+
+        var exception = assertThrows(IllegalStateException.class, () -> customerApiClient
+            .getCustomer(ORG_NUMBER));
+        assertThat(exception.getMessage(), is(equalTo("Error fetching customer information")));
+    }
+
+    @Test
+    public void getCustomerThrowsIllegalStateExceptionWhenHttpClientThrowsException()
+        throws IOException, InterruptedException {
+        when(httpClient.send(any(), any())).thenThrow(IOException.class);
+
+        var exception = assertThrows(IllegalStateException.class, () -> customerApiClient
+            .getCustomer(ORG_NUMBER));
+        assertThat(exception.getMessage(),
+            is(equalTo("Error fetching customer information, http client failed to initialize.")));
+    }
+
+    @Test
+    public void getCustomerWithSuccessfullyParsedCustomerResponseReturnsEmptyOptional()
+        throws IOException, InterruptedException {
+        when(httpResponse.body()).thenReturn(notFoundProblemResponse());
+        when(httpResponse.statusCode()).thenReturn(SC_NOT_FOUND);
         when(httpClient.send(any(), any())).thenReturn(httpResponse);
 
         Optional<CustomerResponse> customer = customerApiClient.getCustomer(ORG_NUMBER);
@@ -81,12 +127,14 @@ public class CustomerApiClientTest {
         assertTrue(customer.isEmpty());
     }
 
-    @Test
-    public void getCustomerReturnsEmptyOptionalOnInvalidHttpResponse() throws IOException, InterruptedException {
-        when(httpClient.send(any(), any())).thenThrow(IOException.class);
+    private String generateValidCustomerResponse(String identifier) {
+        return String.format(RESPONSE_TEMPLATE, identifier, SAMPLE_ID);
+    }
 
-        Optional<CustomerResponse> customer = customerApiClient.getCustomer(ORG_NUMBER);
-
-        assertTrue(customer.isEmpty());
+    private String notFoundProblemResponse() throws JsonProcessingException {
+        return objectMapper.writeValueAsString(Problem.builder()
+            .withStatus(Status.NOT_FOUND)
+            .withDetail("Customer not found: " + ORG_NUMBER)
+            .build());
     }
 }

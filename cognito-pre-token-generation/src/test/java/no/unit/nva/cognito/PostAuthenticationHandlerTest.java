@@ -241,6 +241,7 @@ public class PostAuthenticationHandlerTest {
         event.setUserPoolId(SAMPLE_USER_POOL_ID);
         event.setUserName(SAMPLE_USER_NAME);
         event.setRequest(request);
+        event.setTriggerSource(TRIGGER_SOURCE__TOKEN_GENERATION_REFRESH_TOKENS);
 
         return JsonUtils.objectMapper.convertValue(event, Map.class);
     }
@@ -260,6 +261,7 @@ public class PostAuthenticationHandlerTest {
         event.setUserPoolId(SAMPLE_USER_POOL_ID);
         event.setUserName(SAMPLE_USER_NAME);
         event.setRequest(request);
+        event.setTriggerSource(TRIGGER_SOURCE__TOKEN_GENERATION_REFRESH_TOKENS);
 
         return JsonUtils.objectMapper.convertValue(event, Map.class);
     }

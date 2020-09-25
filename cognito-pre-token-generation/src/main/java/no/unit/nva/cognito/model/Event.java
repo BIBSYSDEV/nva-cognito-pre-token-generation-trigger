@@ -9,6 +9,8 @@ import nva.commons.utils.JacocoGenerated;
 
 public class Event {
 
+    @JsonProperty("triggerSource")
+    private String triggerSource;
     @JsonProperty("userPoolId")
     private String userPoolId;
     @JsonProperty("userName")
@@ -20,6 +22,14 @@ public class Event {
 
     public Event() {
         otherProperties = new HashMap<>();
+    }
+
+    public String getTriggerSource() {
+        return triggerSource;
+    }
+
+    public void setTriggerSource(String triggerSource) {
+        this.triggerSource = triggerSource;
     }
 
     public String getUserPoolId() {

@@ -113,6 +113,8 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
             ObjectNode claimsToAddOrOverride = JsonUtils.objectMapper.createObjectNode();
             customerId.ifPresent(v -> claimsToAddOrOverride.put("custom:customerId", v));
             cristinId.ifPresent(v -> claimsToAddOrOverride.put("custom:cristinId", v));
+            customerId.ifPresent(v -> claimsToAddOrOverride.put("customerId", v));
+            cristinId.ifPresent(v -> claimsToAddOrOverride.put("cristinId", v));
             var claimsOverrideDetails = JsonUtils.objectMapper.createObjectNode()
                 .set("claimsToAddOrOverride", claimsToAddOrOverride);
 

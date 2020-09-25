@@ -94,8 +94,8 @@ public class PostAuthenticationHandlerTest {
         verifyNumberOfAttributeUpdatesInCognito(1);
 
         User expected = createUserWithOnlyUserRole();
-//        User createdUser = getUserFromMock();
-//        assertEquals(createdUser, expected);
+        //User createdUser = getUserFromMock();
+        //assertEquals(createdUser, expected);
         assertEquals(requestEvent, responseEvent);
     }
 
@@ -109,8 +109,8 @@ public class PostAuthenticationHandlerTest {
         verifyNumberOfAttributeUpdatesInCognito(1);
 
         User expected = createUserWithInstitutionAndCreatorRole();
-//        User createdUser = getUserFromMock();
-  //      assertEquals(createdUser, expected);
+        //User createdUser = getUserFromMock();
+        //assertEquals(createdUser, expected);
         assertEquals(requestEvent, responseEvent);
     }
 
@@ -123,9 +123,9 @@ public class PostAuthenticationHandlerTest {
 
         verifyNumberOfAttributeUpdatesInCognito(1);
 
-        User expected = createUserWithInstitutionAndOnlyUserRole();
-//        User createdUser = getUserFromMock();
-//        assertEquals(createdUser, expected);
+        //User expected = createUserWithInstitutionAndOnlyUserRole();
+        //User createdUser = getUserFromMock();
+        //assertEquals(createdUser, expected);
         assertEquals(requestEvent, responseEvent);
     }
 

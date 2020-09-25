@@ -12,6 +12,14 @@ public class Request {
     public Request() {
     }
 
+    public GroupConfiguration getGroupConfiguration() {
+        return groupConfiguration;
+    }
+
+    public void setGroupConfiguration(GroupConfiguration groupConfiguration) {
+        this.groupConfiguration = groupConfiguration;
+    }
+
     public UserAttributes getUserAttributes() {
         return userAttributes;
     }

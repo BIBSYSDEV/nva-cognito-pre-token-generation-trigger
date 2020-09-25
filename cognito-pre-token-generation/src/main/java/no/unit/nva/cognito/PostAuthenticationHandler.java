@@ -101,7 +101,7 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
         Optional<String> customerId = customer.map(CustomerResponse::getCustomerId);
         Optional<String> cristinId =  customer.map(CustomerResponse::getCristinId);
 
-        User user = getUserFromCatalogueOrAddUser(userAttributes, customerId);
+        User user = getUserFromCatalogueOrUpsertUser(userAttributes, customerId);
 
         updateUserDetailsInUserPool(userPoolId, userName, userAttributes, user, cristinId);
 
@@ -132,8 +132,8 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
             createUserAttributes(userAttributes, user, cristinId));
     }
 
-    private User getUserFromCatalogueOrAddUser(UserAttributes userAttributes, Optional<String> customerId) {
-        return userService.getOrCreateUser(
+    private User getUserFromCatalogueOrUpsertUser(UserAttributes userAttributes, Optional<String> customerId) {
+        return userService.getOrUpsertUser(
             userAttributes.getFeideId(),
             userAttributes.getGivenName(),
             userAttributes.getFamilyName(),

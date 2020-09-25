@@ -21,6 +21,7 @@ import no.unit.nva.cognito.model.Role;
 import no.unit.nva.cognito.model.User;
 import no.unit.nva.cognito.model.UserAttributes;
 import no.unit.nva.cognito.service.CustomerApi;
+import no.unit.nva.cognito.service.FakeUserApiNoFoundUserThenUser;
 import no.unit.nva.cognito.service.UserApi;
 import no.unit.nva.cognito.service.UserApiMock;
 import no.unit.nva.cognito.service.UserService;
@@ -123,6 +124,31 @@ public class PostAuthenticationHandlerTest {
         User createdUser = getUserFromMock();
         assertEquals(createdUser, expected);
         assertEquals(requestEvent, responseEvent);
+    }
+
+    @Test
+    public void handleRequestWithCognitoDroppingFirstLambdaInvokeAndGoesForSecondsOnCreationUser() {
+
+        userApi = new FakeUserApiNoFoundUserThenUser();
+        awsCognitoIdentityProvider = mock(AWSCognitoIdentityProvider.class);
+        userService = new UserService(userApi, awsCognitoIdentityProvider);
+        handler = new PostAuthenticationHandler(userService, customerApi);
+
+        prepareMocksWithExistingCustomer();
+
+
+
+        Map<String, Object> requestEvent = createRequestEvent();
+        final Map<String, Object> responseEvent = handler.handleRequest(requestEvent, mock(Context.class));
+
+        verifyNumberOfAttributeUpdatesInCognito(1);
+
+        User expected = createUserWithInstitutionAndCreatorRole();
+        User createdUser = getUserFromMock();
+        assertEquals(createdUser, expected);
+        assertEquals(requestEvent, responseEvent);
+
+
     }
 
     private void verifyNumberOfAttributeUpdatesInCognito(int numberOfUpdates) {

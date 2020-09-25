@@ -43,7 +43,7 @@ public class UserService {
      * @param affiliation   affiliation
      * @return  the user
      */
-    public User getOrCreateUser(String feideId,
+    public User getOrUpsertUser(String feideId,
                                 String givenName,
                                 String familyName,
                                 Optional<String> customerId,

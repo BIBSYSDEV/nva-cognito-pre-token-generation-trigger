@@ -1,5 +1,6 @@
 package no.unit.nva.cognito.service;
 
+import static nva.commons.utils.SingletonCollector.SINGLETON_EXPECTED_ERROR_TEMPLATE;
 import static nva.commons.utils.attempt.Try.attempt;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -110,6 +111,12 @@ public class UserApiClient implements UserApi {
             isConflict = true;
         }
         return new CreateUserFailedException(CREATE_USER_ERROR_MESSAGE, isConflict);
+    }
+
+    private boolean isNotFoundException(Failure<User> failure) {
+        return failure.getException() instanceof IllegalStateException && failure.getException()
+            .getMessage()
+            .contains(String.format(SINGLETON_EXPECTED_ERROR_TEMPLATE, 0));
     }
 
     private Try<User> flattenNestedAttempts(Try<User> attempt) {

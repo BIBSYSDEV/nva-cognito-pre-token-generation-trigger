@@ -6,6 +6,8 @@ public class Request {
 
     @JsonProperty("userAttributes")
     private UserAttributes userAttributes;
+    @JsonProperty("groupConfiguration")
+    private GroupConfiguration groupConfiguration;
 
     public Request() {
     }

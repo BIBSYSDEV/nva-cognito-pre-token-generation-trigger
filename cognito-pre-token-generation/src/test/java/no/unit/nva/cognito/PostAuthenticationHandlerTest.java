@@ -1,5 +1,6 @@
 package no.unit.nva.cognito;
 
+import static no.unit.nva.cognito.PostAuthenticationHandler.TRIGGER_SOURCE__TOKEN_GENERATION_REFRESH_TOKENS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -80,8 +81,7 @@ public class PostAuthenticationHandlerTest {
         User expected = createUserWithInstitutionAndCreatorRole();
         User createdUser = getUserFromMock();
         assertEquals(createdUser, expected);
-        assertEquals(getExpectedResponseEvent(), responseEvent.get("response"));
-        assertEquals(requestEvent, responseEvent.get("request"));
+        assertEquals(requestEvent, responseEvent);
     }
 
     @Test
@@ -96,8 +96,7 @@ public class PostAuthenticationHandlerTest {
         User expected = createUserWithOnlyUserRole();
 //        User createdUser = getUserFromMock();
 //        assertEquals(createdUser, expected);
-        assertEquals(getExpectedEmptyResponseEvent(), responseEvent.get("response"));
-        assertEquals(requestEvent, responseEvent.get("request"));
+        assertEquals(requestEvent, responseEvent);
     }
 
     @Test
@@ -112,8 +111,7 @@ public class PostAuthenticationHandlerTest {
         User expected = createUserWithInstitutionAndCreatorRole();
 //        User createdUser = getUserFromMock();
   //      assertEquals(createdUser, expected);
-        assertEquals(getExpectedResponseEvent(), responseEvent.get("response"));
-        assertEquals(requestEvent, responseEvent.get("request"));
+        assertEquals(requestEvent, responseEvent);
     }
 
     @Test
@@ -128,8 +126,7 @@ public class PostAuthenticationHandlerTest {
         User expected = createUserWithInstitutionAndOnlyUserRole();
 //        User createdUser = getUserFromMock();
 //        assertEquals(createdUser, expected);
-        assertEquals(getExpectedResponseEvent(), responseEvent.get("response"));
-        assertEquals(requestEvent, responseEvent.get("request"));
+        assertEquals(requestEvent, responseEvent);
     }
 
     @Test
@@ -150,8 +147,7 @@ public class PostAuthenticationHandlerTest {
         User expected = createUserWithInstitutionAndCreatorRole();
         //User createdUser = getUserFromMock();
         //assertEquals(createdUser, expected);
-        assertEquals(getExpectedResponseEvent(), responseEvent.get("response"));
-        assertEquals(requestEvent, responseEvent.get("request"));
+        assertEquals(requestEvent, responseEvent);
     }
 
     private JsonNode getExpectedResponseEvent() {

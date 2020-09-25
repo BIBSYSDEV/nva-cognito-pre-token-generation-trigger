@@ -1,0 +1,6 @@
+{
+  "title": "Conflict",
+  "status": 409,
+  "detail": "User already exists: user@name",
+  "requestId": "e0a1489f-c279-41ba-9e91-4cce93590040"
+}

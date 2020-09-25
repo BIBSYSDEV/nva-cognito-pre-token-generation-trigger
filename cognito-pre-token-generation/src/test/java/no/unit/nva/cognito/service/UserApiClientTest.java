@@ -24,15 +24,18 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.net.http.HttpClient;
 import java.net.http.HttpResponse;
+import java.nio.file.Path;
 import java.util.Optional;
 import no.unit.nva.cognito.exception.CreateUserFailedException;
 import no.unit.nva.cognito.model.Role;
 import no.unit.nva.cognito.model.User;
 import nva.commons.exceptions.ForbiddenException;
 import nva.commons.utils.Environment;
+import nva.commons.utils.IoUtils;
 import nva.commons.utils.aws.SecretsReader;
 import nva.commons.utils.log.LogUtils;
 import nva.commons.utils.log.TestAppender;
+import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -141,6 +144,22 @@ public class UserApiClientTest {
 
     private void prepareMocksWithSecret() throws ForbiddenException {
         when(secretsReader.fetchSecret(anyString(), anyString())).thenReturn(THE_API_KEY);
+    }
+
+    @Test
+    public void createUserThrowsCreateUserFailedExceptionOnConflict() throws Exception {
+        when(httpResponse.body()).thenReturn(getConflictJson());
+        when(httpResponse.statusCode()).thenReturn(HttpStatus.SC_CONFLICT);
+        when(httpClient.send(any(), any())).thenReturn(httpResponse);
+        prepareMocksWithSecret();
+
+        User requestUser = createUser();
+
+        assertThrows(CreateUserFailedException.class, () -> userApiClient.createUser(requestUser));
+    }
+
+    private String getConflictJson() {
+        return IoUtils.stringFromFile(Path.of("src/test/resources/conflict.json"));
     }
 
     @Test

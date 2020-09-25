@@ -10,9 +10,9 @@ import static org.mockito.Mockito.when;
 
 import com.amazonaws.services.cognitoidp.AWSCognitoIdentityProvider;
 import com.amazonaws.services.lambda.runtime.Context;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -80,7 +80,8 @@ public class PostAuthenticationHandlerTest {
         User expected = createUserWithInstitutionAndCreatorRole();
         User createdUser = getUserFromMock();
         assertEquals(createdUser, expected);
-        assertEquals(getExpectedResponseEvent(), responseEvent);
+        assertEquals(getExpectedResponseEvent(), responseEvent.get("response"));
+        assertEquals(requestEvent, responseEvent.get("request"));
     }
 
     @Test
@@ -95,7 +96,8 @@ public class PostAuthenticationHandlerTest {
         User expected = createUserWithOnlyUserRole();
         User createdUser = getUserFromMock();
         assertEquals(createdUser, expected);
-        assertEquals(getExpectedEmptyResponseEvent(), responseEvent);
+        assertEquals(getExpectedEmptyResponseEvent(), responseEvent.get("response"));
+        assertEquals(requestEvent, responseEvent.get("request"));
     }
 
     @Test
@@ -110,7 +112,8 @@ public class PostAuthenticationHandlerTest {
         User expected = createUserWithInstitutionAndCreatorRole();
         User createdUser = getUserFromMock();
         assertEquals(createdUser, expected);
-        assertEquals(getExpectedResponseEvent(), responseEvent);
+        assertEquals(getExpectedResponseEvent(), responseEvent.get("response"));
+        assertEquals(requestEvent, responseEvent.get("request"));
     }
 
     @Test
@@ -125,7 +128,8 @@ public class PostAuthenticationHandlerTest {
         User expected = createUserWithInstitutionAndOnlyUserRole();
         User createdUser = getUserFromMock();
         assertEquals(createdUser, expected);
-        assertEquals(getExpectedResponseEvent(), responseEvent);
+        assertEquals(getExpectedResponseEvent(), responseEvent.get("response"));
+        assertEquals(requestEvent, responseEvent.get("request"));
     }
 
     @Test
@@ -146,24 +150,25 @@ public class PostAuthenticationHandlerTest {
         User expected = createUserWithInstitutionAndCreatorRole();
         User createdUser = getUserFromMock();
         assertEquals(createdUser, expected);
-        assertEquals(getExpectedResponseEvent(), responseEvent);
+        assertEquals(getExpectedResponseEvent(), responseEvent.get("response"));
+        assertEquals(requestEvent, responseEvent.get("request"));
     }
 
-    private Map<String, Object> getExpectedResponseEvent() {
+    private JsonNode getExpectedResponseEvent() {
         ObjectNode claimsToAddOrOverride = JsonUtils.objectMapper.createObjectNode();
         claimsToAddOrOverride.put("customerId", SAMPLE_CUSTOMER_ID);
         claimsToAddOrOverride.put("cristinId", SAMPLE_CRISTIN_ID);
         /*customerId.ifPresent(v -> claimsToAddOrOverride.put("customerId", v));
         cristinId.ifPresent(v -> claimsToAddOrOverride.put("cristinId", v));*/
-        var claimsOverrideDetails = JsonUtils.objectMapper.createObjectNode()
-            .set("claimsToAddOrOverride", claimsToAddOrOverride);
-
-        return Map.of("response", JsonUtils.objectMapper.createObjectNode()
-            .set("claimsOverrideDetails", claimsOverrideDetails));
+        var claimsOverrideDetails = JsonUtils.objectMapper.createObjectNode();
+        claimsOverrideDetails
+            .putObject("claimsOverrideDetails")
+            .replace("claimsToAddOrOverride", claimsToAddOrOverride);
+        return claimsOverrideDetails;
     }
 
-    private Map<String, Object> getExpectedEmptyResponseEvent() {
-        return Map.of("response", JsonUtils.objectMapper.createObjectNode());
+    private JsonNode getExpectedEmptyResponseEvent() {
+        return JsonUtils.objectMapper.createObjectNode();
     }
 
     private void verifyNumberOfAttributeUpdatesInCognito(int numberOfUpdates) {

@@ -3,15 +3,15 @@ package no.unit.nva.cognito.service;
 import com.amazonaws.services.cognitoidp.AWSCognitoIdentityProvider;
 import com.amazonaws.services.cognitoidp.model.AdminUpdateUserAttributesRequest;
 import com.amazonaws.services.cognitoidp.model.AttributeType;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import no.unit.nva.cognito.exception.CreateUserFailedException;
 import no.unit.nva.cognito.model.Role;
 import no.unit.nva.cognito.model.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 
 public class UserService {
 
@@ -80,7 +80,7 @@ public class UserService {
         } else {
             user = createUserWithoutInstitution(username, givenName, familyName);
         }
-        try {
+        /*try {
             userApi.createUser(user);
         } catch (CreateUserFailedException e) {
             // Allow conflicts
@@ -88,7 +88,7 @@ public class UserService {
                 throw e;
             }
             userApi.updateUser(user);
-        }
+        }*/
         return user;
     }
 

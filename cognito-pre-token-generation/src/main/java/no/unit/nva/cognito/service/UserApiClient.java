@@ -68,14 +68,14 @@ public class UserApiClient implements UserApi {
     @Override
     public Optional<User> getUser(String username) {
         logger.info("Requesting user information for username: " + username);
-
-        return fetchUserInformation(username)
-            .stream()
-            .filter(this::responseIsSuccessful)
-            .map(this::tryParsingUser)
-            .collect(SingletonCollector.tryCollect())
-            .flatMap(this::flattenNestedAttempts)
-            .toOptional(this::logErrorParsingUserInformation);
+        return Optional.empty(); // TODO Put this on a queue and do eventually...
+//        return fetchUserInformation(username)
+//            .stream()
+//            .filter(this::responseIsSuccessful)
+//            .map(this::tryParsingUser)
+//            .collect(SingletonCollector.tryCollect())
+//            .flatMap(this::flattenNestedAttempts)
+//            .toOptional(this::logErrorParsingUserInformation);
     }
 
     @Override
@@ -132,13 +132,13 @@ public class UserApiClient implements UserApi {
             .toOptional(this::logResponseErrorForUpsertUser);
     }
 
-    private Optional<HttpResponse<String>> fetchUserInformation(String username) {
+    /*private Optional<HttpResponse<String>> fetchUserInformation(String username) {
         return attempt(() -> formUri(username))
             .map(URIBuilder::build)
             .map(this::buildGetUserRequest)
             .map(this::sendHttpRequest)
             .toOptional(failure -> logResponseError(failure));
-    }
+    }*/
 
     private Try<User> tryParsingUser(HttpResponse<String> response) {
         return attempt(() -> parseUser(response));
@@ -148,10 +148,10 @@ public class UserApiClient implements UserApi {
         return response.statusCode() == HttpStatus.SC_OK;
     }
 
-    private void logErrorParsingUserInformation(Failure<User> failure) {
+   /* private void logErrorParsingUserInformation(Failure<User> failure) {
         logger.error(ERROR_PARSING_USER_INFORMATION, failure.getException());
     }
-
+*/
     private void logResponseError(Failure<HttpResponse<String>> failure) {
         logger.error(ERROR_FETCHING_USER_INFORMATION, failure.getException());
     }
@@ -183,12 +183,14 @@ public class UserApiClient implements UserApi {
             .setPath(PATH);
     }
 
+/*
     private HttpRequest buildGetUserRequest(URI uri) {
         return HttpRequest.newBuilder()
             .uri(uri)
             .GET()
             .build();
     }
+*/
 
     private HttpRequest buildCreateUserRequest(URI uri, User user) throws JsonProcessingException, ForbiddenException {
         return HttpRequest.newBuilder()

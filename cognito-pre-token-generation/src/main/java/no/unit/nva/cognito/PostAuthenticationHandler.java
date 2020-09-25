@@ -43,6 +43,7 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
     public static final String NVA = "NVA";
     private static final Logger logger = LoggerFactory.getLogger(PostAuthenticationHandler.class);
     public static final String TRIGGER_SOURCE__TOKEN_GENERATION_REFRESH_TOKENS = "TokenGeneration_RefreshTokens";
+    //public static final String TRIGGER_SOURCE__TOKEN_GENERATION_HOSTED_AUTH = "TokenGeneration_HostedAuth";
     private final UserService userService;
     private final CustomerApi customerApi;
 
@@ -90,10 +91,10 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
     public Map<String, Object> handleRequest(Map<String, Object> input, Context context) {
 
         Event event = parseEventFromInput(input);
-        if (!TRIGGER_SOURCE__TOKEN_GENERATION_REFRESH_TOKENS.equals(event.getTriggerSource())) {
-            logger.info("Quick return: " + event.getTriggerSource());
-            return input;
-        }
+        //if (!TRIGGER_SOURCE__TOKEN_GENERATION_HOSTED_AUTH.equals(event.getTriggerSource())) {
+        //    logger.info("Quick return: " + event.getTriggerSource());
+        //    return input;
+        //}
         String userPoolId = event.getUserPoolId();
         String userName = event.getUserName();
 

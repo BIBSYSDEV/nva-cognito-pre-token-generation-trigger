@@ -156,8 +156,8 @@ public class PostAuthenticationHandlerTest {
 
     private JsonNode getExpectedResponseEvent() {
         ObjectNode claimsToAddOrOverride = JsonUtils.objectMapper.createObjectNode();
-        claimsToAddOrOverride.put("customerId", SAMPLE_CUSTOMER_ID);
-        claimsToAddOrOverride.put("cristinId", SAMPLE_CRISTIN_ID);
+        claimsToAddOrOverride.put("custom:customerId", SAMPLE_CUSTOMER_ID);
+        claimsToAddOrOverride.put("custom:cristinId", SAMPLE_CRISTIN_ID);
         /*customerId.ifPresent(v -> claimsToAddOrOverride.put("customerId", v));
         cristinId.ifPresent(v -> claimsToAddOrOverride.put("cristinId", v));*/
         var claimsOverrideDetails = JsonUtils.objectMapper.createObjectNode();

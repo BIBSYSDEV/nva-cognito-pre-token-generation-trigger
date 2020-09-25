@@ -8,4 +8,6 @@ public interface UserApi {
     Optional<User> getUser(String username);
 
     User createUser(User user);
+
+    User updateUser(User user);
 }

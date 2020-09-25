@@ -15,6 +15,7 @@ import java.util.Optional;
 import no.unit.nva.cognito.exception.CreateUserFailedException;
 import no.unit.nva.cognito.model.User;
 import nva.commons.exceptions.ForbiddenException;
+import nva.commons.exceptions.commonexceptions.ConflictException;
 import nva.commons.utils.Environment;
 import nva.commons.utils.JacocoGenerated;
 import nva.commons.utils.SingletonCollector;
@@ -33,6 +34,7 @@ public class UserApiClient implements UserApi {
     public static final String USER_API_HOST = "USER_API_HOST";
     public static final String ERROR_PARSING_USER_INFORMATION = "Error parsing user information";
     public static final String ERROR_FETCHING_USER_INFORMATION = "Error fetching user information";
+    public static final String ERROR_UPDATING_USER_INFORMATION = "Error updating user information";
     public static final String CREATE_USER_ERROR_MESSAGE = "Error creating user in user catalogue";
     public static final String USER_SERVICE_SECRET_NAME = "USER_SERVICE_SECRET_NAME";
     public static final String USER_SERVICE_SECRET_KEY = "USER_SERVICE_SECRET_KEY";
@@ -89,9 +91,25 @@ public class UserApiClient implements UserApi {
             .orElseThrow(this::logErrorAndReturnException);
     }
 
+    @Override
+    public User updateUser(User user) {
+        logger.info("Requesting user update for username: " + user.getUsername());
+        return upsertUser(user)
+            .stream()
+            .filter(this::responseIsSuccessful)
+            .map(this::tryParsingUser)
+            .collect(SingletonCollector.tryCollect())
+            .flatMap(this::flattenNestedAttempts)
+            .orElseThrow(this::logErrorAndReturnException);
+    }
+
     private CreateUserFailedException logErrorAndReturnException(Failure<User> failure) {
         logger.error(failure.getException().getMessage(), failure.getException());
-        return new CreateUserFailedException(CREATE_USER_ERROR_MESSAGE);
+        var isConflict = false;
+        if (failure.getException() instanceof ConflictException) {
+            isConflict = true;
+        }
+        return new CreateUserFailedException(CREATE_USER_ERROR_MESSAGE, isConflict);
     }
 
     private Try<User> flattenNestedAttempts(Try<User> attempt) {
@@ -104,6 +122,14 @@ public class UserApiClient implements UserApi {
             .map(uri -> buildCreateUserRequest(uri, user))
             .map(this::sendHttpRequest)
             .toOptional(failure -> logResponseError(failure));
+    }
+
+    private Optional<HttpResponse<String>> upsertUser(User user) {
+        return attempt(() -> formUri(user.getUsername()))
+            .map(URIBuilder::build)
+            .map(uri -> buildUpdateUserRequest(uri, user))
+            .map(this::sendHttpRequest)
+            .toOptional(this::logResponseErrorForUpsertUser);
     }
 
     private Optional<HttpResponse<String>> fetchUserInformation(String username) {
@@ -128,6 +154,10 @@ public class UserApiClient implements UserApi {
 
     private void logResponseError(Failure<HttpResponse<String>> failure) {
         logger.error(ERROR_FETCHING_USER_INFORMATION, failure.getException());
+    }
+
+    private void logResponseErrorForUpsertUser(Failure<HttpResponse<String>> failure) {
+        logger.error(ERROR_UPDATING_USER_INFORMATION, failure.getException());
     }
 
     private User parseUser(HttpResponse<String> response)
@@ -165,6 +195,14 @@ public class UserApiClient implements UserApi {
             .uri(uri)
             .header(AUTHORIZATION, secretsReader.fetchSecret(userServiceSecretName, userServiceSecretKey))
             .POST(BodyPublishers.ofString(objectMapper.writeValueAsString(user)))
+            .build();
+    }
+
+    private HttpRequest buildUpdateUserRequest(URI uri, User user) throws JsonProcessingException, ForbiddenException {
+        return HttpRequest.newBuilder()
+            .uri(uri)
+            .header(AUTHORIZATION, secretsReader.fetchSecret(userServiceSecretName, userServiceSecretKey))
+            .PUT(BodyPublishers.ofString(objectMapper.writeValueAsString(user)))
             .build();
     }
 

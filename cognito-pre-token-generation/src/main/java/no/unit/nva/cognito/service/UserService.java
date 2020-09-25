@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import no.unit.nva.cognito.exception.CreateUserFailedException;
 import no.unit.nva.cognito.model.Role;
 import no.unit.nva.cognito.model.User;
 import org.slf4j.Logger;
@@ -49,7 +50,7 @@ public class UserService {
                                 String affiliation) {
         return userApi
             .getUser(feideId)
-            .orElseGet(() -> createUser(feideId, givenName, familyName, customerId, affiliation));
+            .orElseGet(() -> upsertUser(feideId, givenName, familyName, customerId, affiliation));
     }
 
     /**
@@ -68,7 +69,7 @@ public class UserService {
         awsCognitoIdentityProvider.adminUpdateUserAttributes(request);
     }
 
-    private User createUser(String username,
+    private User upsertUser(String username,
                             String givenName,
                             String familyName,
                             Optional<String> customerId,
@@ -79,7 +80,15 @@ public class UserService {
         } else {
             user = createUserWithoutInstitution(username, givenName, familyName);
         }
-        userApi.createUser(user);
+        try {
+            userApi.createUser(user);
+        } catch (CreateUserFailedException e) {
+            // Allow conflicts
+            if (!e.isConflictWithExistingUser()) {
+                throw e;
+            }
+            userApi.updateUser(user);
+        }
         return user;
     }
 

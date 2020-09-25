@@ -16,6 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.isNotNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -137,6 +138,21 @@ public class UserApiClientTest {
         User responseUser = userApiClient.createUser(requestUser);
 
         Assertions.assertNotNull(responseUser);
+    }
+
+    @Test
+    public void updateUserReturnsUpdatedUserOnSuccess() throws IOException, InterruptedException, ForbiddenException {
+        when(httpResponse.body()).thenReturn(getValidJsonUser());
+        when(httpResponse.statusCode()).thenReturn(SC_OK);
+        when(httpClient.send(any(), any())).thenReturn(httpResponse);
+        prepareMocksWithSecret();
+
+        User requestUser = createUser();
+
+        User responseUser = userApiClient.updateUser(requestUser);
+        Assertions.assertNotNull(responseUser);
+        var responseUser2 = userApiClient.updateUser(requestUser);
+        Assertions.assertNotNull(responseUser2);
     }
 
     private void prepareMocksWithSecret() throws ForbiddenException {

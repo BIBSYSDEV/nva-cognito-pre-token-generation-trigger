@@ -102,9 +102,9 @@ Resources:
           USER_SERVICE_SECRET_NAME: !Ref UserServiceSecretName
           USER_SERVICE_SECRET_KEY: !Ref UserServiceSecretKey
 
-Outputs:
-  CognitoPreTokenGenerationFunction:
-    Description: ARN Identifier of the PreTokenGenerationTrigger
-    Value: !GetAtt PreTokenGenerationTrigger.Arn
-    Export:
-      Name: CognitoPreTokenGenerationFunctionArn
+          #Outputs:
+          #  CognitoPreTokenGenerationFunction:
+          #    Description: ARN Identifier of the PreTokenGenerationTrigger
+          #    Value: !GetAtt PreTokenGenerationTrigger.Arn
+          #    Export:
+          #      Name: CognitoPreTokenGenerationFunctionArn

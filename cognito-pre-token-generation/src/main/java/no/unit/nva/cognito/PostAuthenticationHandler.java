@@ -7,6 +7,7 @@ import com.amazonaws.services.cognitoidp.model.AttributeType;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.net.http.HttpClient;
 import java.util.ArrayList;
 import java.util.List;
@@ -40,11 +41,9 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
     public static final String COMMA_DELIMITER = ",";
     public static final String FEIDE_PREFIX = "feide:";
     public static final String NVA = "NVA";
-
+    private static final Logger logger = LoggerFactory.getLogger(PostAuthenticationHandler.class);
     private final UserService userService;
     private final CustomerApi customerApi;
-
-    private static final Logger logger = LoggerFactory.getLogger(PostAuthenticationHandler.class);
 
     @JacocoGenerated
     public PostAuthenticationHandler() {
@@ -99,21 +98,32 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
         Optional<CustomerResponse> customer = mapOrgNumberToCustomer(
             removeCountryPrefix(userAttributes.getOrgNumber()));
         Optional<String> customerId = customer.map(CustomerResponse::getCustomerId);
-        Optional<String> cristinId =  customer.map(CustomerResponse::getCristinId);
+        Optional<String> cristinId = customer.map(CustomerResponse::getCristinId);
 
         User user = getUserFromCatalogueOrUpsertUser(userAttributes, customerId);
 
         updateUserDetailsInUserPool(userPoolId, userName, userAttributes, user, cristinId);
 
-        return input;
+        if (customerId.isPresent() && cristinId.isPresent()) {
+            ObjectNode claimsToAddOrOverride = JsonUtils.objectMapper.createObjectNode();
+            customerId.ifPresent(v -> claimsToAddOrOverride.put("customerId", v));
+            cristinId.ifPresent(v -> claimsToAddOrOverride.put("cristinId", v));
+            var claimsOverrideDetails = JsonUtils.objectMapper.createObjectNode()
+                .set("claimsToAddOrOverride", claimsToAddOrOverride);
+
+            return Map.of("response", JsonUtils.objectMapper.createObjectNode()
+                .set("claimsOverrideDetails", claimsOverrideDetails));
+        } else {
+            return Map.of("response", JsonUtils.objectMapper.createObjectNode());
+        }
     }
 
     /**
-     * Using ObjectMapper to convert input to Event because we are interested in only some input properties but have
-     * not way of telling Lambda's JSON parser to ignore the rest.
+     * Using ObjectMapper to convert input to Event because we are interested in only some input properties but have not
+     * way of telling Lambda's JSON parser to ignore the rest.
      *
      * @param input event json as map
-     * @return  event
+     * @return event
      */
     private Event parseEventFromInput(Map<String, Object> input) {
         return JsonUtils.objectMapper.convertValue(input, Event.class);
@@ -124,7 +134,6 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
                                              UserAttributes userAttributes,
                                              User user,
                                              Optional<String> cristinId) {
-
 
         userService.updateUserAttributes(
             userPoolId,

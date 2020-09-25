@@ -10,7 +10,9 @@ import static org.mockito.Mockito.when;
 
 import com.amazonaws.services.cognitoidp.AWSCognitoIdentityProvider;
 import com.amazonaws.services.lambda.runtime.Context;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -78,7 +80,7 @@ public class PostAuthenticationHandlerTest {
         User expected = createUserWithInstitutionAndCreatorRole();
         User createdUser = getUserFromMock();
         assertEquals(createdUser, expected);
-        assertEquals(requestEvent, responseEvent);
+        assertEquals(getExpectedResponseEvent(), responseEvent);
     }
 
     @Test
@@ -93,7 +95,7 @@ public class PostAuthenticationHandlerTest {
         User expected = createUserWithOnlyUserRole();
         User createdUser = getUserFromMock();
         assertEquals(createdUser, expected);
-        assertEquals(requestEvent, responseEvent);
+        assertEquals(getExpectedEmptyResponseEvent(), responseEvent);
     }
 
     @Test
@@ -108,7 +110,7 @@ public class PostAuthenticationHandlerTest {
         User expected = createUserWithInstitutionAndCreatorRole();
         User createdUser = getUserFromMock();
         assertEquals(createdUser, expected);
-        assertEquals(requestEvent, responseEvent);
+        assertEquals(getExpectedResponseEvent(), responseEvent);
     }
 
     @Test
@@ -123,7 +125,7 @@ public class PostAuthenticationHandlerTest {
         User expected = createUserWithInstitutionAndOnlyUserRole();
         User createdUser = getUserFromMock();
         assertEquals(createdUser, expected);
-        assertEquals(requestEvent, responseEvent);
+        assertEquals(getExpectedResponseEvent(), responseEvent);
     }
 
     @Test
@@ -136,8 +138,6 @@ public class PostAuthenticationHandlerTest {
 
         prepareMocksWithExistingCustomer();
 
-
-
         Map<String, Object> requestEvent = createRequestEvent();
         final Map<String, Object> responseEvent = handler.handleRequest(requestEvent, mock(Context.class));
 
@@ -146,9 +146,24 @@ public class PostAuthenticationHandlerTest {
         User expected = createUserWithInstitutionAndCreatorRole();
         User createdUser = getUserFromMock();
         assertEquals(createdUser, expected);
-        assertEquals(requestEvent, responseEvent);
+        assertEquals(getExpectedResponseEvent(), responseEvent);
+    }
 
+    private Map<String, Object> getExpectedResponseEvent() {
+        ObjectNode claimsToAddOrOverride = JsonUtils.objectMapper.createObjectNode();
+        claimsToAddOrOverride.put("customerId", SAMPLE_CUSTOMER_ID);
+        claimsToAddOrOverride.put("cristinId", SAMPLE_CRISTIN_ID);
+        /*customerId.ifPresent(v -> claimsToAddOrOverride.put("customerId", v));
+        cristinId.ifPresent(v -> claimsToAddOrOverride.put("cristinId", v));*/
+        var claimsOverrideDetails = JsonUtils.objectMapper.createObjectNode()
+            .set("claimsToAddOrOverride", claimsToAddOrOverride);
 
+        return Map.of("response", JsonUtils.objectMapper.createObjectNode()
+            .set("claimsOverrideDetails", claimsOverrideDetails));
+    }
+
+    private Map<String, Object> getExpectedEmptyResponseEvent() {
+        return Map.of("response", JsonUtils.objectMapper.createObjectNode());
     }
 
     private void verifyNumberOfAttributeUpdatesInCognito(int numberOfUpdates) {

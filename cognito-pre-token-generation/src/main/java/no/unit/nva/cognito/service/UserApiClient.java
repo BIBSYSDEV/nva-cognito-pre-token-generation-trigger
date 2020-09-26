@@ -69,13 +69,13 @@ public class UserApiClient implements UserApi {
     public Optional<UserDto> getUser(String username) {
         logger.info("Requesting user information for username: " + username);
         return Optional.empty(); // TODO Put this on a queue and do eventually...
-//        return fetchUserInformation(username)
-//            .stream()
-//            .filter(this::responseIsSuccessful)
-//            .map(this::tryParsingUser)
-//            .collect(SingletonCollector.tryCollect())
-//            .flatMap(this::flattenNestedAttempts)
-//            .toOptional(this::logErrorParsingUserInformation);
+        //return fetchUserInformation(username)
+        //    .stream()
+        //    .filter(this::responseIsSuccessful)
+        //    .map(this::tryParsingUser)
+        //    .collect(SingletonCollector.tryCollect())
+        //    .flatMap(this::flattenNestedAttempts)
+        //    .toOptional(this::logErrorParsingUserInformation);
     }
 
     @Override
@@ -148,10 +148,10 @@ public class UserApiClient implements UserApi {
         return response.statusCode() == HttpStatus.SC_OK;
     }
 
-   /* private void logErrorParsingUserInformation(Failure<User> failure) {
+    /* private void logErrorParsingUserInformation(Failure<User> failure) {
         logger.error(ERROR_PARSING_USER_INFORMATION, failure.getException());
     }
-*/
+    */
     private void logResponseError(Failure<HttpResponse<String>> failure) {
         logger.error(ERROR_FETCHING_USER_INFORMATION, failure.getException());
     }
@@ -183,16 +183,18 @@ public class UserApiClient implements UserApi {
             .setPath(PATH);
     }
 
-/*
+    /*
     private HttpRequest buildGetUserRequest(URI uri) {
         return HttpRequest.newBuilder()
             .uri(uri)
             .GET()
             .build();
     }
-*/
+    */
 
-    private HttpRequest buildCreateUserRequest(URI uri, UserDto userDto) throws JsonProcessingException, ForbiddenException {
+    private HttpRequest buildCreateUserRequest(URI uri,
+                                               UserDto userDto)
+        throws JsonProcessingException, ForbiddenException {
         return HttpRequest.newBuilder()
             .uri(uri)
             .header(AUTHORIZATION, secretsReader.fetchSecret(userServiceSecretName, userServiceSecretKey))
@@ -200,7 +202,8 @@ public class UserApiClient implements UserApi {
             .build();
     }
 
-    private HttpRequest buildUpdateUserRequest(URI uri, UserDto userDto) throws JsonProcessingException, ForbiddenException {
+    private HttpRequest buildUpdateUserRequest(URI uri,
+                                               UserDto userDto) throws JsonProcessingException, ForbiddenException {
         return HttpRequest.newBuilder()
             .uri(uri)
             .header(AUTHORIZATION, secretsReader.fetchSecret(userServiceSecretName, userServiceSecretKey))

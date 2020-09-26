@@ -108,7 +108,12 @@ public class UserService {
     }
 
     private UserDto createUserWithoutInstitution(String username, String givenName, String familyName) {
-        return new UserDto(username, givenName, familyName, NO_CUSTOMER_WITH_NVA, NO_CRISTIN_ID, Collections.singletonList(new Role(USER)));
+        return new UserDto(username,
+            givenName,
+            familyName,
+            NO_CUSTOMER_WITH_NVA,
+            NO_CRISTIN_ID,
+            Collections.singletonList(new Role(USER)));
     }
 
     private UserDto createUserForInstitution(String username,

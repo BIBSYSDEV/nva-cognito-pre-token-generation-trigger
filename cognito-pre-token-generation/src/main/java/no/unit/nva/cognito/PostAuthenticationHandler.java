@@ -86,6 +86,7 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
     public Map<String, Object> handleRequest(Map<String, Object> input, Context context) {
 
         Event event = parseEventFromInput(input);
+        logger.info("event from source: " + event.getTriggerSource());
         //if (!TRIGGER_SOURCE__TOKEN_GENERATION_HOSTED_AUTH.equals(event.getTriggerSource())) {
         //    logger.info("Quick return: " + event.getTriggerSource());
         //    return input;

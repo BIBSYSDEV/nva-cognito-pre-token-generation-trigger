@@ -19,6 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class User {
+
     private static final Logger logger = LoggerFactory.getLogger(User.class);
     private final UserAttributes userAttributes;
 
@@ -26,9 +27,13 @@ public class User {
     private String cognitoUsername;
 
     private UserDto apiUser;
-    private UserService userService;
+    private final UserService userService;
 
-    public User(String userPoolId, String cognitoUsername, UserDto apiUser, UserAttributes userAttributes, UserService userService) {
+    public User(String userPoolId,
+                String cognitoUsername,
+                UserDto apiUser,
+                UserAttributes userAttributes,
+                UserService userService) {
         this.userPoolId = userPoolId;
         this.cognitoUsername = cognitoUsername;
         this.apiUser = apiUser;
@@ -60,6 +65,9 @@ public class User {
         this.apiUser = apiUser;
     }
 
+    /**
+     * Send request to Cognito to update our custom attributes in the user pool.
+     */
     public void updateCustomAttributesInUserPool() {
         userService.updateUserAttributes(
             userPoolId,
@@ -105,5 +113,4 @@ public class User {
             .map(Role::getRolename)
             .collect(Collectors.joining(COMMA_DELIMITER));
     }
-
 }

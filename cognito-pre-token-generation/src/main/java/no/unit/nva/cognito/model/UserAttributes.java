@@ -13,6 +13,12 @@ public class UserAttributes {
     @JsonProperty("custom:affiliation")
     private String affiliation;
 
+    @JsonProperty("custom:cristinId")
+    private String cristinId; // populated by our triggers
+
+    @JsonProperty("custom:customerId")
+    private String customerId; // populated by our triggers
+
     @JsonProperty("given_name")
     private String givenName;
 
@@ -57,5 +63,21 @@ public class UserAttributes {
 
     public void setFamilyName(String familyName) {
         this.familyName = familyName;
+    }
+
+    public String getCristinId() {
+        return cristinId;
+    }
+
+    public void setCristinId(String cristinId) {
+        this.cristinId = cristinId;
+    }
+
+    public String getCustomerId() {
+        return customerId;
+    }
+
+    public void setCustomerId(String customerId) {
+        this.customerId = customerId;
     }
 }

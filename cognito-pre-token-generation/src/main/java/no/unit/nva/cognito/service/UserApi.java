@@ -1,13 +1,15 @@
 package no.unit.nva.cognito.service;
 
+import com.amazonaws.services.cognitoidp.model.AttributeType;
 import java.util.Optional;
-import no.unit.nva.cognito.model.User;
+import no.unit.nva.cognito.api.user.model.UserDto;
 
 public interface UserApi {
 
-    Optional<User> getUser(String username);
+    Optional<UserDto> getUser(String username);
 
-    User createUser(User user);
+    UserDto createUser(UserDto userDto);
 
-    User updateUser(User user);
+    UserDto updateUser(UserDto userDto);
+
 }

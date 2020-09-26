@@ -3,20 +3,15 @@ package no.unit.nva.cognito;
 import static no.unit.nva.cognito.util.OrgNumberCleaner.removeCountryPrefix;
 
 import com.amazonaws.services.cognitoidp.AWSCognitoIdentityProviderClient;
-import com.amazonaws.services.cognitoidp.model.AttributeType;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.net.http.HttpClient;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import no.unit.nva.cognito.model.CustomerResponse;
 import no.unit.nva.cognito.model.Event;
-import no.unit.nva.cognito.model.Role;
 import no.unit.nva.cognito.model.User;
 import no.unit.nva.cognito.model.UserAttributes;
 import no.unit.nva.cognito.service.CustomerApi;
@@ -42,8 +37,8 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
     public static final String FEIDE_PREFIX = "feide:";
     public static final String NVA = "NVA";
     private static final Logger logger = LoggerFactory.getLogger(PostAuthenticationHandler.class);
+    public static final String TRIGGER_SOURCE__TOKEN_GENERATION_PREFIX = "TokenGeneration_";
     public static final String TRIGGER_SOURCE__TOKEN_GENERATION_REFRESH_TOKENS = "TokenGeneration_RefreshTokens";
-    //public static final String TRIGGER_SOURCE__TOKEN_GENERATION_HOSTED_AUTH = "TokenGeneration_HostedAuth";
     private final UserService userService;
     private final CustomerApi customerApi;
 
@@ -102,26 +97,35 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
 
         Optional<CustomerResponse> customer = mapOrgNumberToCustomer(
             removeCountryPrefix(userAttributes.getOrgNumber()));
+
         Optional<String> customerId = customer.map(CustomerResponse::getCustomerId);
         Optional<String> cristinId = customer.map(CustomerResponse::getCristinId);
 
-        User user = getUserFromCatalogueOrUpsertUser(userAttributes, customerId);
+        customerId.ifPresent(userAttributes::setCustomerId);
+        cristinId.ifPresent(userAttributes::setCristinId);
 
-        updateUserDetailsInUserPool(userPoolId, userName, userAttributes, user, cristinId);
+        User user = userService.getOrCreateUserFromToken(
+            userPoolId,
+            userName,
+            userAttributes
+        );
+        user.updateCustomAttributesInUserPool();
 
-        if (customerId.isPresent() && cristinId.isPresent()) {
-            ObjectNode claimsToAddOrOverride = JsonUtils.objectMapper.createObjectNode();
-            customerId.ifPresent(v -> claimsToAddOrOverride.put("custom:customerId", v));
-            cristinId.ifPresent(v -> claimsToAddOrOverride.put("custom:cristinId", v));
-            customerId.ifPresent(v -> claimsToAddOrOverride.put("customerId", v));
-            cristinId.ifPresent(v -> claimsToAddOrOverride.put("cristinId", v));
-            var claimsOverrideDetails = JsonUtils.objectMapper.createObjectNode()
-                .set("claimsToAddOrOverride", claimsToAddOrOverride);
+        if (TRIGGER_SOURCE__TOKEN_GENERATION_PREFIX.startsWith(event.getTriggerSource())) {
+            if (customerId.isPresent() && cristinId.isPresent()) {
+                ObjectNode claimsToAddOrOverride = JsonUtils.objectMapper.createObjectNode();
+                customerId.ifPresent(v -> claimsToAddOrOverride.put("custom:customerId", v));
+                cristinId.ifPresent(v -> claimsToAddOrOverride.put("custom:cristinId", v));
+                customerId.ifPresent(v -> claimsToAddOrOverride.put("customerId", v));
+                cristinId.ifPresent(v -> claimsToAddOrOverride.put("cristinId", v));
+                var claimsOverrideDetails = JsonUtils.objectMapper.createObjectNode()
+                    .set("claimsToAddOrOverride", claimsToAddOrOverride);
 
-            input.put("response", JsonUtils.objectMapper.createObjectNode()
-                .set("claimsOverrideDetails", claimsOverrideDetails));
-        } else {
-            input.put("response", JsonUtils.objectMapper.createObjectNode());
+                input.put("response", JsonUtils.objectMapper.createObjectNode()
+                    .set("claimsOverrideDetails", claimsOverrideDetails));
+            } else {
+                input.put("response", JsonUtils.objectMapper.createObjectNode());
+            }
         }
         return input;
 
@@ -138,67 +142,7 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
         return JsonUtils.objectMapper.convertValue(input, Event.class);
     }
 
-    private void updateUserDetailsInUserPool(String userPoolId,
-                                             String userName,
-                                             UserAttributes userAttributes,
-                                             User user,
-                                             Optional<String> cristinId) {
-
-        userService.updateUserAttributes(
-            userPoolId,
-            userName,
-            createUserAttributes(userAttributes, user, cristinId));
-    }
-
-    private User getUserFromCatalogueOrUpsertUser(UserAttributes userAttributes, Optional<String> customerId) {
-        return userService.getOrUpsertUser(
-            userAttributes.getFeideId(),
-            userAttributes.getGivenName(),
-            userAttributes.getFamilyName(),
-            customerId,
-            userAttributes.getAffiliation()
-        );
-    }
-
     private Optional<CustomerResponse> mapOrgNumberToCustomer(String orgNumber) {
         return customerApi.getCustomer(orgNumber);
-    }
-
-    private List<AttributeType> createUserAttributes(UserAttributes userAttributes,
-                                                     User user,
-                                                     Optional<String> cristinId) {
-        List<AttributeType> userAttributeTypes = new ArrayList<>();
-
-        if (user.getInstitution() != null) {
-            userAttributeTypes.add(toAttributeType(CUSTOM_CUSTOMER_ID, user.getInstitution()));
-        }
-        if (cristinId.isPresent()) {
-            userAttributeTypes.add(toAttributeType(CUSTOM_CRISTIN_ID, cristinId.get()));
-        }
-        userAttributeTypes.add(toAttributeType(CUSTOM_APPLICATION, NVA));
-        userAttributeTypes.add(toAttributeType(CUSTOM_IDENTIFIERS, FEIDE_PREFIX + userAttributes.getFeideId()));
-
-        String applicationRoles = toRolesString(user.getRoles());
-        logger.info("applicationRoles: " + applicationRoles);
-        userAttributeTypes.add(toAttributeType(
-            CUSTOM_APPLICATION_ROLES, applicationRoles
-            )
-        );
-
-        return userAttributeTypes;
-    }
-
-    private AttributeType toAttributeType(String name, String value) {
-        AttributeType attributeType = new AttributeType();
-        attributeType.setName(name);
-        attributeType.setValue(value);
-        return attributeType;
-    }
-
-    private String toRolesString(List<Role> roles) {
-        return roles
-            .stream()
-            .map(Role::getRolename)
-            .collect(Collectors.joining(COMMA_DELIMITER));
     }
 }

@@ -21,7 +21,7 @@ import no.unit.nva.cognito.model.CustomerResponse;
 import no.unit.nva.cognito.model.Event;
 import no.unit.nva.cognito.model.Request;
 import no.unit.nva.cognito.model.Role;
-import no.unit.nva.cognito.model.User;
+import no.unit.nva.cognito.api.user.model.UserDto;
 import no.unit.nva.cognito.model.UserAttributes;
 import no.unit.nva.cognito.service.CustomerApi;
 import no.unit.nva.cognito.service.FakeUserApiNoFoundUserThenUser;
@@ -78,9 +78,9 @@ public class PostAuthenticationHandlerTest {
 
         verifyNumberOfAttributeUpdatesInCognito(1);
 
-        User expected = createUserWithInstitutionAndCreatorRole();
-        User createdUser = getUserFromMock();
-        assertEquals(createdUser, expected);
+        UserDto expected = createUserWithInstitutionAndCreatorRole();
+        UserDto createdUserDto = getUserFromMock();
+        assertEquals(createdUserDto, expected);
         assertEquals(requestEvent, responseEvent);
     }
 
@@ -93,7 +93,7 @@ public class PostAuthenticationHandlerTest {
 
         verifyNumberOfAttributeUpdatesInCognito(1);
 
-        User expected = createUserWithOnlyUserRole();
+        UserDto expected = createUserWithOnlyUserRole();
         //User createdUser = getUserFromMock();
         //assertEquals(createdUser, expected);
         assertEquals(requestEvent, responseEvent);
@@ -108,7 +108,7 @@ public class PostAuthenticationHandlerTest {
 
         verifyNumberOfAttributeUpdatesInCognito(1);
 
-        User expected = createUserWithInstitutionAndCreatorRole();
+        UserDto expected = createUserWithInstitutionAndCreatorRole();
         //User createdUser = getUserFromMock();
         //assertEquals(createdUser, expected);
         assertEquals(requestEvent, responseEvent);
@@ -144,7 +144,7 @@ public class PostAuthenticationHandlerTest {
 
         verifyNumberOfAttributeUpdatesInCognito(1);
 
-        User expected = createUserWithInstitutionAndCreatorRole();
+        UserDto expected = createUserWithInstitutionAndCreatorRole();
         //User createdUser = getUserFromMock();
         //assertEquals(createdUser, expected);
         assertEquals(requestEvent, responseEvent);
@@ -163,15 +163,11 @@ public class PostAuthenticationHandlerTest {
         return claimsOverrideDetails;
     }
 
-    private JsonNode getExpectedEmptyResponseEvent() {
-        return JsonUtils.objectMapper.createObjectNode();
-    }
-
     private void verifyNumberOfAttributeUpdatesInCognito(int numberOfUpdates) {
         verify(awsCognitoIdentityProvider, times(numberOfUpdates)).adminUpdateUserAttributes(any());
     }
 
-    private User getUserFromMock() {
+    private UserDto getUserFromMock() {
         return userApi.getUser(SAMPLE_FEIDE_ID).get();
     }
 
@@ -188,39 +184,42 @@ public class PostAuthenticationHandlerTest {
         when(customerApi.getCustomer(anyString())).thenReturn(Optional.empty());
     }
 
-    private User createUserWithOnlyUserRole() {
+    private UserDto createUserWithOnlyUserRole() {
         List<Role> roles = new ArrayList<>();
         roles.add(new Role(USER));
-        return new User(
+        return new UserDto(
             SAMPLE_FEIDE_ID,
             SAMPLE_GIVEN_NAME,
             SAMPLE_FAMILY_NAME,
             null,
+            null,
             roles);
     }
 
-    private User createUserWithInstitutionAndCreatorRole() {
+    private UserDto createUserWithInstitutionAndCreatorRole() {
         List<Role> roles = new ArrayList<>();
         roles.add(new Role(CREATOR));
         roles.add(new Role(USER));
-        return new User(
+        return new UserDto(
             SAMPLE_FEIDE_ID,
             SAMPLE_GIVEN_NAME,
             SAMPLE_FAMILY_NAME,
             SAMPLE_CUSTOMER_ID,
+            SAMPLE_CRISTIN_ID,
             roles);
     }
 
-    private User createUserWithInstitutionAndOnlyUserRole() {
+    /*private UserDto createUserWithInstitutionAndOnlyUserRole() {
         List<Role> roles = new ArrayList<>();
         roles.add(new Role(USER));
-        return new User(
+        return new UserDto(
             SAMPLE_FEIDE_ID,
             SAMPLE_GIVEN_NAME,
             SAMPLE_FAMILY_NAME,
             SAMPLE_CUSTOMER_ID,
+            SAMPLE_CRISTIN_ID,
             roles);
-    }
+    }*/
 
     private Map<String, Object> createRequestEvent() {
         UserAttributes userAttributes = new UserAttributes();

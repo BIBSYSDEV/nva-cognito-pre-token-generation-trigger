@@ -3,20 +3,23 @@ package no.unit.nva.cognito.service;
 import com.amazonaws.services.cognitoidp.AWSCognitoIdentityProvider;
 import com.amazonaws.services.cognitoidp.model.AdminUpdateUserAttributesRequest;
 import com.amazonaws.services.cognitoidp.model.AttributeType;
+import java.util.Objects;
 import no.unit.nva.cognito.model.Role;
+import no.unit.nva.cognito.api.user.model.UserDto;
 import no.unit.nva.cognito.model.User;
+import no.unit.nva.cognito.model.UserAttributes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 public class UserService {
 
-    public static final String NO_ROLE = null;
-    private final UserApi userApi;
+    public static final String NO_CUSTOMER_WITH_NVA = null;
+    private static final String NO_CRISTIN_ID = null;
+    private final UserApi userApiService;
     private final AWSCognitoIdentityProvider awsCognitoIdentityProvider;
 
     public static final String USER = "User";
@@ -27,30 +30,36 @@ public class UserService {
 
     private static final Logger logger = LoggerFactory.getLogger(UserService.class);
 
-    public UserService(UserApi userApi,
+    public UserService(UserApi userApiService,
                        AWSCognitoIdentityProvider awsCognitoIdentityProvider) {
-        this.userApi = userApi;
+        this.userApiService = userApiService;
         this.awsCognitoIdentityProvider = awsCognitoIdentityProvider;
     }
 
     /**
-     * Get user from user catalogue service or create new user if not found.
-     *
-     * @param feideId       feideId as username
-     * @param givenName     givenName
-     * @param familyName    familyName
-     * @param customerId    customerId as institution
-     * @param affiliation   affiliation
-     * @return  the user
+     * Retreive user from user cataloge or creates it from the token's user attributes.
+     * @param userPoolId        userPoolId in Cognito
+     * @param cognitoUserName   cognito's username
+     * @param userAttributes    updated cognito's user attributes with our custom: attributes.
+     * @return User business object
      */
-    public User getOrUpsertUser(String feideId,
-                                String givenName,
-                                String familyName,
-                                Optional<String> customerId,
-                                String affiliation) {
-        return userApi
-            .getUser(feideId)
-            .orElseGet(() -> upsertUser(feideId, givenName, familyName, customerId, affiliation));
+    public User getOrCreateUserFromToken(String userPoolId,
+                                         String cognitoUserName,
+                                         UserAttributes userAttributes) {
+
+        return new User(userPoolId, cognitoUserName, userApiService
+            // Can customerId from orgnumber lookup be authorative for saying this user
+            // is a customer? And we can always update user object from token?
+            // Wanted rule: Always up2date token for clients, eventually updated dynamodb.
+            .getUser(userAttributes.getFeideId())
+            .orElseGet(() -> createUser(userAttributes.getFeideId(),
+                userAttributes.getGivenName(),
+                userAttributes.getFamilyName(),
+                userAttributes.getCustomerId(),
+                userAttributes.getCristinId(),
+                userAttributes.getAffiliation())),
+            userAttributes,
+            this);
     }
 
     /**
@@ -69,17 +78,19 @@ public class UserService {
         awsCognitoIdentityProvider.adminUpdateUserAttributes(request);
     }
 
-    private User upsertUser(String username,
-                            String givenName,
-                            String familyName,
-                            Optional<String> customerId,
-                            String affiliation) {
-        User user;
-        if (customerId.isPresent()) {
-            user = createUserForInstitution(username, givenName, familyName, customerId.get(), affiliation);
+    private UserDto createUser(String username,
+                               String givenName,
+                               String familyName,
+                               String customerId,
+                               String cristinId,
+                               String affiliation) {
+        UserDto userDto;
+        if (hasCustomerAttributes(customerId, cristinId)) {
+            userDto = createUserForInstitution(username, givenName, familyName, customerId, cristinId, affiliation);
         } else {
-            user = createUserWithoutInstitution(username, givenName, familyName);
+            userDto = createUserWithoutInstitution(username, givenName, familyName);
         }
+        // Send async event, so eventually the user gets stored in dynamodb.
         /*try {
             userApi.createUser(user);
         } catch (CreateUserFailedException e) {
@@ -89,25 +100,32 @@ public class UserService {
             }
             userApi.updateUser(user);
         }*/
-        return user;
+        return userDto;
     }
 
-    private User createUserWithoutInstitution(String username, String givenName, String familyName) {
-        return new User(username, givenName, familyName, NO_ROLE, Collections.singletonList(new Role(USER)));
+    private boolean hasCustomerAttributes(String customerId, String cristinId) {
+        return Objects.nonNull(customerId) && Objects.nonNull(cristinId);
     }
 
-    private User createUserForInstitution(String username,
-                                          String givenName,
-                                          String familyName,
-                                          String institutionId,
-                                          String affiliation) {
+    private UserDto createUserWithoutInstitution(String username, String givenName, String familyName) {
+        return new UserDto(username, givenName, familyName, NO_CUSTOMER_WITH_NVA, NO_CRISTIN_ID, Collections.singletonList(new Role(USER)));
+    }
+
+    private UserDto createUserForInstitution(String username,
+                                             String givenName,
+                                             String familyName,
+                                             String institutionId,
+                                             String cristinId,
+                                             String affiliation) {
         List<Role> roles = createRolesFromAffiliation(affiliation);
         roles.add(new Role(USER));
-        return new User(username, givenName, familyName, institutionId, roles);
+        return new UserDto(username, givenName, familyName, institutionId, cristinId, roles);
     }
 
     private List<Role> createRolesFromAffiliation(String affiliation) {
         List<Role> roles = new ArrayList<>();
+        // TODO: Verify conditions from https://unit.atlassian.net/browse/NP-1491
+        // TODO: Verify conditions from ?? (dont remember second user story)
         if (affiliation.contains(STAFF)
             || affiliation.contains(EMPLOYEE)
             || affiliation.contains(MEMBER)
@@ -117,5 +135,4 @@ public class UserService {
 
         return roles;
     }
-
 }

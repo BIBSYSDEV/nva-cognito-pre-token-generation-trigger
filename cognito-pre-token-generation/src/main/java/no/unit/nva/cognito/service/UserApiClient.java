@@ -13,7 +13,7 @@ import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.util.Optional;
 import no.unit.nva.cognito.exception.CreateUserFailedException;
-import no.unit.nva.cognito.model.User;
+import no.unit.nva.cognito.api.user.model.UserDto;
 import nva.commons.exceptions.ForbiddenException;
 import nva.commons.exceptions.commonexceptions.ConflictException;
 import nva.commons.utils.Environment;
@@ -66,7 +66,7 @@ public class UserApiClient implements UserApi {
     }
 
     @Override
-    public Optional<User> getUser(String username) {
+    public Optional<UserDto> getUser(String username) {
         logger.info("Requesting user information for username: " + username);
         return Optional.empty(); // TODO Put this on a queue and do eventually...
 //        return fetchUserInformation(username)
@@ -80,9 +80,9 @@ public class UserApiClient implements UserApi {
 
     @Override
     @JacocoGenerated
-    public User createUser(User user) {
-        logger.info("Requesting user creation for username: " + user.getUsername());
-        return createNewUser(user)
+    public UserDto createUser(UserDto userDto) {
+        logger.info("Requesting user creation for username: " + userDto.getLocalFederatedUsername());
+        return createNewUser(userDto)
             .stream()
             .filter(this::responseIsSuccessful)
             .map(this::tryParsingUser)
@@ -92,9 +92,9 @@ public class UserApiClient implements UserApi {
     }
 
     @Override
-    public User updateUser(User user) {
-        logger.info("Requesting user update for username: " + user.getUsername());
-        return upsertUser(user)
+    public UserDto updateUser(UserDto userDto) {
+        logger.info("Requesting user update for username: " + userDto.getLocalFederatedUsername());
+        return upsertUser(userDto)
             .stream()
             .filter(this::responseIsSuccessful)
             .map(this::tryParsingUser)
@@ -103,7 +103,7 @@ public class UserApiClient implements UserApi {
             .orElseThrow(this::logErrorAndReturnException);
     }
 
-    private CreateUserFailedException logErrorAndReturnException(Failure<User> failure) {
+    private CreateUserFailedException logErrorAndReturnException(Failure<UserDto> failure) {
         logger.error(failure.getException().getMessage(), failure.getException());
         var isConflict = false;
         if (failure.getException() instanceof ConflictException) {
@@ -112,22 +112,22 @@ public class UserApiClient implements UserApi {
         return new CreateUserFailedException(CREATE_USER_ERROR_MESSAGE, isConflict);
     }
 
-    private Try<User> flattenNestedAttempts(Try<User> attempt) {
+    private Try<UserDto> flattenNestedAttempts(Try<UserDto> attempt) {
         return attempt;
     }
 
-    private Optional<HttpResponse<String>> createNewUser(User user) {
+    private Optional<HttpResponse<String>> createNewUser(UserDto userDto) {
         return attempt(() -> formUri())
             .map(URIBuilder::build)
-            .map(uri -> buildCreateUserRequest(uri, user))
+            .map(uri -> buildCreateUserRequest(uri, userDto))
             .map(this::sendHttpRequest)
             .toOptional(failure -> logResponseError(failure));
     }
 
-    private Optional<HttpResponse<String>> upsertUser(User user) {
-        return attempt(() -> formUri(user.getUsername()))
+    private Optional<HttpResponse<String>> upsertUser(UserDto userDto) {
+        return attempt(() -> formUri(userDto.getLocalFederatedUsername()))
             .map(URIBuilder::build)
-            .map(uri -> buildUpdateUserRequest(uri, user))
+            .map(uri -> buildUpdateUserRequest(uri, userDto))
             .map(this::sendHttpRequest)
             .toOptional(this::logResponseErrorForUpsertUser);
     }
@@ -140,7 +140,7 @@ public class UserApiClient implements UserApi {
             .toOptional(failure -> logResponseError(failure));
     }*/
 
-    private Try<User> tryParsingUser(HttpResponse<String> response) {
+    private Try<UserDto> tryParsingUser(HttpResponse<String> response) {
         return attempt(() -> parseUser(response));
     }
 
@@ -160,9 +160,9 @@ public class UserApiClient implements UserApi {
         logger.error(ERROR_UPDATING_USER_INFORMATION, failure.getException());
     }
 
-    private User parseUser(HttpResponse<String> response)
+    private UserDto parseUser(HttpResponse<String> response)
         throws JsonProcessingException {
-        return objectMapper.readValue(response.body(), User.class);
+        return objectMapper.readValue(response.body(), UserDto.class);
     }
 
     private HttpResponse<String> sendHttpRequest(HttpRequest httpRequest) throws IOException, InterruptedException {
@@ -192,19 +192,19 @@ public class UserApiClient implements UserApi {
     }
 */
 
-    private HttpRequest buildCreateUserRequest(URI uri, User user) throws JsonProcessingException, ForbiddenException {
+    private HttpRequest buildCreateUserRequest(URI uri, UserDto userDto) throws JsonProcessingException, ForbiddenException {
         return HttpRequest.newBuilder()
             .uri(uri)
             .header(AUTHORIZATION, secretsReader.fetchSecret(userServiceSecretName, userServiceSecretKey))
-            .POST(BodyPublishers.ofString(objectMapper.writeValueAsString(user)))
+            .POST(BodyPublishers.ofString(objectMapper.writeValueAsString(userDto)))
             .build();
     }
 
-    private HttpRequest buildUpdateUserRequest(URI uri, User user) throws JsonProcessingException, ForbiddenException {
+    private HttpRequest buildUpdateUserRequest(URI uri, UserDto userDto) throws JsonProcessingException, ForbiddenException {
         return HttpRequest.newBuilder()
             .uri(uri)
             .header(AUTHORIZATION, secretsReader.fetchSecret(userServiceSecretName, userServiceSecretKey))
-            .PUT(BodyPublishers.ofString(objectMapper.writeValueAsString(user)))
+            .PUT(BodyPublishers.ofString(objectMapper.writeValueAsString(userDto)))
             .build();
     }
 

@@ -4,7 +4,7 @@ import static no.unit.nva.cognito.service.UserApiClient.CREATE_USER_ERROR_MESSAG
 
 import java.util.Optional;
 import no.unit.nva.cognito.exception.CreateUserFailedException;
-import no.unit.nva.cognito.model.User;
+import no.unit.nva.cognito.api.user.model.UserDto;
 
 /**
  * Please someone refactor this crap. Fake is there for demostrating the following weird shit:
@@ -18,38 +18,38 @@ import no.unit.nva.cognito.model.User;
  */
 public class FakeUserApiNoFoundUserThenUser implements UserApi {
     public static final boolean IS_CONFLICT = true;
-    private User user;
+    private UserDto userDto;
     private boolean firstCallGetUser = true;
     private boolean firstCallCreateUser = true;
 
 
     @Override
-    public Optional<User> getUser(String username) {
+    public Optional<UserDto> getUser(String username) {
         if (firstCallGetUser) {
             firstCallGetUser = false;
             return Optional.empty();
         }
-        return Optional.ofNullable(user);
+        return Optional.ofNullable(userDto);
     }
 
     @Override
-    public User createUser(User user) {
+    public UserDto createUser(UserDto userDto) {
         if (firstCallCreateUser) {
             firstCallCreateUser = false;
         } else {
-            this.user = user;
+            this.userDto = userDto;
         }
 
-        if (this.user != null) {
-            return this.user;
+        if (this.userDto != null) {
+            return this.userDto;
         } else {
             throw new CreateUserFailedException(CREATE_USER_ERROR_MESSAGE, IS_CONFLICT);
         }
     }
 
     @Override
-    public User updateUser(User user) {
-        this.user = user;
-        return user;
+    public UserDto updateUser(UserDto userDto) {
+        this.userDto = userDto;
+        return userDto;
     }
 }

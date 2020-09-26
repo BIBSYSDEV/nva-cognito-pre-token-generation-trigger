@@ -1,17 +1,14 @@
 package no.unit.nva.cognito.service;
 
 import static java.util.Collections.singletonList;
-import static no.unit.nva.cognito.service.UserApiClient.ERROR_FETCHING_USER_INFORMATION;
-import static no.unit.nva.cognito.service.UserApiClient.ERROR_PARSING_USER_INFORMATION;
+import static no.unit.nva.cognito.PostAuthenticationHandlerTest.SAMPLE_CRISTIN_ID;
 import static no.unit.nva.cognito.service.UserApiClient.USER_API_HOST;
 import static no.unit.nva.cognito.service.UserApiClient.USER_API_SCHEME;
 import static no.unit.nva.cognito.service.UserApiClient.USER_SERVICE_SECRET_KEY;
 import static no.unit.nva.cognito.service.UserApiClient.USER_SERVICE_SECRET_NAME;
-import static org.apache.http.HttpStatus.SC_CONFLICT;
 import static org.apache.http.HttpStatus.SC_INTERNAL_SERVER_ERROR;
 import static org.apache.http.HttpStatus.SC_OK;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -27,12 +24,10 @@ import java.io.IOException;
 import java.net.http.HttpClient;
 import java.net.http.HttpResponse;
 import java.util.Optional;
-import no.unit.nva.cognito.exception.CreateUserFailedException;
 import no.unit.nva.cognito.model.Role;
-import no.unit.nva.cognito.model.User;
+import no.unit.nva.cognito.api.user.model.UserDto;
 import nva.commons.exceptions.ForbiddenException;
 import nva.commons.utils.Environment;
-import nva.commons.utils.JsonUtils;
 import nva.commons.utils.aws.SecretsReader;
 import nva.commons.utils.log.LogUtils;
 import nva.commons.utils.log.TestAppender;
@@ -41,7 +36,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 @SuppressWarnings("unchecked")
-public class UserApiClientTest {
+public class UserDtoApiClientTest {
 
     public static final String GARBAGE_JSON = "{{}";
     public static final String SAMPLE_USERNAME = "user@name";
@@ -83,7 +78,7 @@ public class UserApiClientTest {
         when(httpResponse.statusCode()).thenReturn(SC_OK);
         when(httpClient.send(any(), any())).thenReturn(httpResponse);
 
-        Optional<User> user = userApiClient.getUser(SAMPLE_USERNAME);
+        Optional<UserDto> user = userApiClient.getUser(SAMPLE_USERNAME);
 
         //Assertions.assertTrue(user.isPresent());
     }
@@ -95,7 +90,7 @@ public class UserApiClientTest {
         when(httpResponse.statusCode()).thenReturn(SC_OK);
         when(httpClient.send(any(), any())).thenReturn(httpResponse);
 
-        Optional<User> user = userApiClient.getUser(SAMPLE_USERNAME);
+        Optional<UserDto> user = userApiClient.getUser(SAMPLE_USERNAME);
 
 
         String messages = appender.getMessages();
@@ -109,7 +104,7 @@ public class UserApiClientTest {
         when(httpResponse.statusCode()).thenReturn(SC_INTERNAL_SERVER_ERROR);
         when(httpClient.send(any(), any())).thenReturn(httpResponse);
 
-        Optional<User> user = userApiClient.getUser(SAMPLE_USERNAME);
+        Optional<UserDto> user = userApiClient.getUser(SAMPLE_USERNAME);
 
         String messages = appender.getMessages();
         //assertThat(messages, containsString(ERROR_PARSING_USER_INFORMATION));
@@ -121,7 +116,7 @@ public class UserApiClientTest {
         final TestAppender appender = LogUtils.getTestingAppender(UserApiClient.class);
         when(httpClient.send(any(), any())).thenThrow(IOException.class);
 
-        Optional<User> user = userApiClient.getUser(SAMPLE_USERNAME);
+        Optional<UserDto> user = userApiClient.getUser(SAMPLE_USERNAME);
 
         String messages = appender.getMessages();
         //assertThat(messages, containsString(ERROR_PARSING_USER_INFORMATION));
@@ -135,11 +130,11 @@ public class UserApiClientTest {
         when(httpClient.send(any(), any())).thenReturn(httpResponse);
         prepareMocksWithSecret();
 
-        User requestUser = createUser();
+        UserDto requestUserDto = createUser();
 
-        User responseUser = userApiClient.createUser(requestUser);
+        UserDto responseUserDto = userApiClient.createUser(requestUserDto);
 
-        Assertions.assertNotNull(responseUser);
+        Assertions.assertNotNull(responseUserDto);
     }
 
     @Test
@@ -149,11 +144,11 @@ public class UserApiClientTest {
         when(httpClient.send(any(), any())).thenReturn(httpResponse);
         prepareMocksWithSecret();
 
-        User requestUser = createUser();
+        UserDto requestUserDto = createUser();
 
-        User responseUser = userApiClient.updateUser(requestUser);
-        Assertions.assertNotNull(responseUser);
-        var responseUser2 = userApiClient.updateUser(requestUser);
+        UserDto responseUserDto = userApiClient.updateUser(requestUserDto);
+        Assertions.assertNotNull(responseUserDto);
+        var responseUser2 = userApiClient.updateUser(requestUserDto);
         Assertions.assertNotNull(responseUser2);
     }
 
@@ -182,12 +177,13 @@ public class UserApiClientTest {
         return objectMapper.writeValueAsString(createUser());
     }
 
-    private User createUser() {
-        return new User(
+    private UserDto createUser() {
+        return new UserDto(
             SAMPLE_USERNAME,
             SAMPLE_GIVEN_NAME,
             SAMPLE_FAMILY_NAME,
             SAMPLE_INSTITUTION_ID,
+            SAMPLE_CRISTIN_ID,
             singletonList(new Role(CREATOR))
         );
     }

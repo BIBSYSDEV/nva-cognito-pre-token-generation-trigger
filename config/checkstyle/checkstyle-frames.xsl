@@ -21,7 +21,7 @@
       the documentation and/or other materials provided with the
       distribution.
 
-   3. The end-user documentation included with the redistribution, if
+   3. The end-userDto documentation included with the redistribution, if
       any, must include the following acknowlegement:
          "This product includes software developed by the
           Apache Software Foundation (http://www.apache.org/)."

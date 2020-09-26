@@ -79,11 +79,11 @@ public class User {
             userPoolId,
             cognitoUsername,
             getAttributeTypesToUpdate(userAttributes));
-        if (wasMissingCustomAttributesInOriginalUserAttributes) {
+        /*if (wasMissingCustomAttributesInOriginalUserAttributes) {
             logger.info("Throwing TemporaryUnavailableException to force lamba reinvokation from Cognito");
             throw new TemporaryUnavailableException("custom: attributes were not present in original request,"
                 + " please retry");
-        }
+        }*/
     }
 
     private List<AttributeType> getAttributeTypesToUpdate(UserAttributes userAttributes) {

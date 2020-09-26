@@ -42,7 +42,7 @@ public class User {
         this.apiUser = apiUser;
         this.userAttributes = userAttributes;
         this.wasMissingCustomAttributesInOriginalUserAttributes = wasMissingCustomAttributesInOriginalUserAttributes;
-        logger.info("debug was: "+ wasMissingCustomAttributesInOriginalUserAttributes);
+        logger.info("debug was: " + wasMissingCustomAttributesInOriginalUserAttributes);
         this.userService = userService;
     }
 

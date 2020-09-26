@@ -229,6 +229,9 @@ public class PostAuthenticationHandlerTest {
         userAttributes.setGivenName(SAMPLE_GIVEN_NAME);
         userAttributes.setFamilyName(SAMPLE_FAMILY_NAME);
 
+        userAttributes.setCustomerId(SAMPLE_CUSTOMER_ID);
+        userAttributes.setCristinId(SAMPLE_CRISTIN_ID);
+
         Request request = new Request();
         request.setUserAttributes(userAttributes);
 
@@ -248,6 +251,9 @@ public class PostAuthenticationHandlerTest {
         userAttributes.setAffiliation(EMPTY_AFFILIATION);
         userAttributes.setGivenName(SAMPLE_GIVEN_NAME);
         userAttributes.setFamilyName(SAMPLE_FAMILY_NAME);
+
+        userAttributes.setCustomerId(SAMPLE_CUSTOMER_ID);
+        userAttributes.setCristinId(SAMPLE_CRISTIN_ID);
 
         Request request = new Request();
         request.setUserAttributes(userAttributes);

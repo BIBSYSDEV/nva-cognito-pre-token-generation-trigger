@@ -82,7 +82,10 @@ public class UserAttributes {
         this.customerId = customerId;
     }
 
-
+    /**
+     * Returns a deep copy of this instance.
+     * @return UserAttributes copy
+     */
     @JsonIgnore
     public UserAttributes getDeepCopy() {
         var copy = new UserAttributes();

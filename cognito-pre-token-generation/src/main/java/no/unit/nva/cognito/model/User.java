@@ -28,7 +28,7 @@ public class User {
     private String cognitoUsername;
 
     private UserDto apiUser;
-    private final boolean wasMissingCustomAttributesInOriginalUserAttributes;
+    //private final boolean wasMissingCustomAttributesInOriginalUserAttributes;
     private final UserService userService;
 
     public User(String userPoolId,
@@ -41,7 +41,7 @@ public class User {
         this.cognitoUsername = cognitoUsername;
         this.apiUser = apiUser;
         this.userAttributes = userAttributes;
-        this.wasMissingCustomAttributesInOriginalUserAttributes = wasMissingCustomAttributesInOriginalUserAttributes;
+        //this.wasMissingCustomAttributesInOriginalUserAttributes = wasMissingCustomAttributesInOriginalUserAttributes;
         logger.info("debug was: " + wasMissingCustomAttributesInOriginalUserAttributes);
         this.userService = userService;
     }

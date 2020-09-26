@@ -115,7 +115,9 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
         );
         user.updateCustomAttributesInUserPool();
 
-        if (TRIGGER_SOURCE__TOKEN_GENERATION_PREFIX.startsWith(event.getTriggerSource())) {
+
+        if (event.getTriggerSource() != null && event.getTriggerSource()
+            .startsWith(TRIGGER_SOURCE__TOKEN_GENERATION_PREFIX)) {
             if (customerId.isPresent() && cristinId.isPresent()) {
                 ObjectNode claimsToAddOrOverride = JsonUtils.objectMapper.createObjectNode();
                 customerId.ifPresent(v -> claimsToAddOrOverride.put("custom:customerId", v));

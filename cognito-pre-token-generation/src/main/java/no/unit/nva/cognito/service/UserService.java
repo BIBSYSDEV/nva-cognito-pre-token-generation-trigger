@@ -40,14 +40,16 @@ public class UserService {
      * Retreive user from user cataloge or creates it from the token's user attributes.
      * @param userPoolId        userPoolId in Cognito
      * @param cognitoUserName   cognito's username
+     * @param originalUserAttributes cognito's user attributes (before we ran updated for our custom:attributes)
      * @param userAttributes    updated cognito's user attributes with our custom: attributes.
      * @return User business object
      */
     public User getOrCreateUserFromToken(String userPoolId,
                                          String cognitoUserName,
+                                         UserAttributes originalUserAttributes,
                                          UserAttributes userAttributes) {
 
-        return new User(userPoolId, cognitoUserName, userApiService
+        var apiUser = userApiService
             // Can customerId from orgnumber lookup be authorative for saying this user
             // is a customer? And we can always update user object from token?
             // Wanted rule: Always up2date token for clients, eventually updated dynamodb.
@@ -57,9 +59,23 @@ public class UserService {
                 userAttributes.getFamilyName(),
                 userAttributes.getCustomerId(),
                 userAttributes.getCristinId(),
-                userAttributes.getAffiliation())),
+                userAttributes.getAffiliation()));
+
+        var wasMissingCustomAttributesInOriginalUserAttributes =
+            isOriginalUserAttributesMissingCustomAttributes(originalUserAttributes, userAttributes);
+
+        return new User(userPoolId,
+            cognitoUserName,
+            apiUser,
             userAttributes,
+            wasMissingCustomAttributesInOriginalUserAttributes,
             this);
+    }
+
+    private boolean isOriginalUserAttributesMissingCustomAttributes(UserAttributes originalUserAttributes,
+                                                                    UserAttributes userAttributes) {
+        return !hasCustomerAttributes(originalUserAttributes.getCustomerId(), originalUserAttributes.getCristinId())
+            && hasCustomerAttributes(userAttributes.getCustomerId(), userAttributes.getCristinId());
     }
 
     /**

@@ -108,6 +108,7 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
         User user = userService.getOrCreateUserFromToken(
             userPoolId,
             userName,
+            event.getRequest().getUserAttributes(),
             userAttributes
         );
         user.updateCustomAttributesInUserPool();

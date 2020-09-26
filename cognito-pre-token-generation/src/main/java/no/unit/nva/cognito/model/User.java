@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import no.unit.nva.cognito.api.user.model.UserDto;
+import no.unit.nva.cognito.service.TemporaryUnavailableException;
 import no.unit.nva.cognito.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,17 +28,20 @@ public class User {
     private String cognitoUsername;
 
     private UserDto apiUser;
+    private final boolean wasMissingCustomAttributesInOriginalUserAttributes;
     private final UserService userService;
 
     public User(String userPoolId,
                 String cognitoUsername,
                 UserDto apiUser,
                 UserAttributes userAttributes,
+                boolean wasMissingCustomAttributesInOriginalUserAttributes,
                 UserService userService) {
         this.userPoolId = userPoolId;
         this.cognitoUsername = cognitoUsername;
         this.apiUser = apiUser;
         this.userAttributes = userAttributes;
+        this.wasMissingCustomAttributesInOriginalUserAttributes = wasMissingCustomAttributesInOriginalUserAttributes;
         this.userService = userService;
     }
 
@@ -67,12 +71,17 @@ public class User {
 
     /**
      * Send request to Cognito to update our custom attributes in the user pool.
+     * @throws TemporaryUnavailableException if custom: attributes were not present in orignal request (force reinvoke)
      */
     public void updateCustomAttributesInUserPool() {
         userService.updateUserAttributes(
             userPoolId,
             cognitoUsername,
             getAttributeTypesToUpdate(userAttributes));
+        if (wasMissingCustomAttributesInOriginalUserAttributes) {
+            throw new TemporaryUnavailableException("custom: attributes were not present in original request,"
+                + " please retry");
+        }
     }
 
     private List<AttributeType> getAttributeTypesToUpdate(UserAttributes userAttributes) {

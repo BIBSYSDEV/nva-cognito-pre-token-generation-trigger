@@ -5,6 +5,7 @@ import static no.unit.nva.cognito.util.OrgNumberCleaner.removeCountryPrefix;
 import com.amazonaws.services.cognitoidp.AWSCognitoIdentityProviderClient;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.net.http.HttpClient;
@@ -128,6 +129,11 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
                     .set("claimsOverrideDetails", claimsOverrideDetails));
             } else {
                 input.put("response", JsonUtils.objectMapper.createObjectNode());
+            }
+            try {
+                logger.info("response is: " + JsonUtils.objectMapper.writeValueAsString(input.get("response")));
+            } catch (JsonProcessingException e) {
+                logger.error("Json processing when printing response", e);
             }
         }
         return input;

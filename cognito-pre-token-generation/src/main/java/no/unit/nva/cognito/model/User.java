@@ -79,6 +79,7 @@ public class User {
             cognitoUsername,
             getAttributeTypesToUpdate(userAttributes));
         if (wasMissingCustomAttributesInOriginalUserAttributes) {
+            logger.info("Throwing TemporaryUnavailableException to force lamba reinvokation from Cognito");
             throw new TemporaryUnavailableException("custom: attributes were not present in original request,"
                 + " please retry");
         }

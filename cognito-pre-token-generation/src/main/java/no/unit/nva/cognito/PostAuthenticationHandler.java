@@ -95,9 +95,10 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
         String userName = event.getUserName();
 
         UserAttributes userAttributes = event.getRequest().getUserAttributes();
+        UserAttributes originalUserAttributes = userAttributes;
 
         Optional<CustomerResponse> customer = mapOrgNumberToCustomer(
-            removeCountryPrefix(userAttributes.getOrgNumber()));
+            removeCountryPrefix(originalUserAttributes.getOrgNumber()));
 
         Optional<String> customerId = customer.map(CustomerResponse::getCustomerId);
         Optional<String> cristinId = customer.map(CustomerResponse::getCristinId);
@@ -108,7 +109,7 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
         User user = userService.getOrCreateUserFromToken(
             userPoolId,
             userName,
-            event.getRequest().getUserAttributes(),
+            originalUserAttributes,
             userAttributes
         );
         user.updateCustomAttributesInUserPool();

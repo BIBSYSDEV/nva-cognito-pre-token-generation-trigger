@@ -95,7 +95,7 @@ allprojects {
                 limit {
                     counter = 'METHOD'
                     value = 'COVEREDRATIO'
-                    minimum = 0.80
+                    minimum = 0.50
                 }
             }
 
@@ -103,7 +103,7 @@ allprojects {
                 limit {
                     counter = 'CLASS'
                     value = 'COVEREDRATIO'
-                    minimum = 0.80
+                    minimum = 0.50
                 }
             }
         }

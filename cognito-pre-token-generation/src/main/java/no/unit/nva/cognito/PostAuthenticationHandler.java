@@ -95,7 +95,7 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
         String userName = event.getUserName();
 
         UserAttributes userAttributes = event.getRequest().getUserAttributes();
-        UserAttributes originalUserAttributes = userAttributes;
+        UserAttributes originalUserAttributes = userAttributes.getDeepCopy();
 
         Optional<CustomerResponse> customer = mapOrgNumberToCustomer(
             removeCountryPrefix(originalUserAttributes.getOrgNumber()));

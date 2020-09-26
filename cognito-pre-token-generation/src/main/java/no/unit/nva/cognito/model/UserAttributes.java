@@ -1,5 +1,6 @@
 package no.unit.nva.cognito.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class UserAttributes {
@@ -79,5 +80,19 @@ public class UserAttributes {
 
     public void setCustomerId(String customerId) {
         this.customerId = customerId;
+    }
+
+
+    @JsonIgnore
+    public UserAttributes getDeepCopy() {
+        var copy = new UserAttributes();
+        copy.setAffiliation(getAffiliation());
+        copy.setCristinId(getCristinId());
+        copy.setCustomerId(getCustomerId());
+        copy.setFamilyName(getFamilyName());
+        copy.setFeideId(getFeideId());
+        copy.setGivenName(getGivenName());
+        copy.setOrgNumber(getOrgNumber());
+        return copy;
     }
 }

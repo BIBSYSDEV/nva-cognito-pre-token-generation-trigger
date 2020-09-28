@@ -13,7 +13,6 @@ import java.util.Map;
 import java.util.Optional;
 import no.unit.nva.cognito.model.CustomerResponse;
 import no.unit.nva.cognito.model.Event;
-import no.unit.nva.cognito.model.User;
 import no.unit.nva.cognito.model.UserAttributes;
 import no.unit.nva.cognito.service.CustomerApi;
 import no.unit.nva.cognito.service.CustomerApiClient;
@@ -40,7 +39,7 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
     private static final Logger logger = LoggerFactory.getLogger(PostAuthenticationHandler.class);
     public static final String TRIGGER_SOURCE__TOKEN_GENERATION_PREFIX = "TokenGeneration_";
     public static final String TRIGGER_SOURCE__TOKEN_GENERATION_REFRESH_TOKENS = "TokenGeneration_RefreshTokens";
-    private final UserService userService;
+    //private final UserService userService;
     private final CustomerApi customerApi;
 
     @JacocoGenerated
@@ -49,7 +48,7 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
     }
 
     public PostAuthenticationHandler(UserService userService, CustomerApi customerApi) {
-        this.userService = userService;
+        //this.userService = userService;
         this.customerApi = customerApi;
     }
 
@@ -96,24 +95,24 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
         String userName = event.getUserName();
 
         UserAttributes userAttributes = event.getRequest().getUserAttributes();
-        UserAttributes originalUserAttributes = userAttributes.getDeepCopy();
+        UserAttributes updatedUserAttributes = userAttributes.getDeepCopy();
 
         Optional<CustomerResponse> customer = mapOrgNumberToCustomer(
-            removeCountryPrefix(originalUserAttributes.getOrgNumber()));
+            removeCountryPrefix(updatedUserAttributes.getOrgNumber()));
 
         Optional<String> customerId = customer.map(CustomerResponse::getCustomerId);
         Optional<String> cristinId = customer.map(CustomerResponse::getCristinId);
 
-        customerId.ifPresent(userAttributes::setCustomerId);
-        cristinId.ifPresent(userAttributes::setCristinId);
+        customerId.ifPresent(updatedUserAttributes::setCustomerId);
+        cristinId.ifPresent(updatedUserAttributes::setCristinId);
 
-        User user = userService.getOrCreateUserFromToken(
-            userPoolId,
-            userName,
-            originalUserAttributes,
-            userAttributes
-        );
-        user.updateCustomAttributesInUserPool();
+//        User user = userService.getOrCreateUserFromToken(
+//            userPoolId,
+//            userName,
+//            originalUserAttributes,
+//            userAttributes
+//        );
+        //user.updateCustomAttributesInUserPool();
 
 
         if (event.getTriggerSource() != null && event.getTriggerSource()
@@ -124,6 +123,8 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
                 cristinId.ifPresent(v -> claimsToAddOrOverride.put("custom:cristinId", v));
                 customerId.ifPresent(v -> claimsToAddOrOverride.put("customerId", v));
                 cristinId.ifPresent(v -> claimsToAddOrOverride.put("cristinId", v));
+
+                claimsToAddOrOverride.put("custom:yearOfBirth", "1985"); // existing attribute from feide
                 var claimsOverrideDetails = JsonUtils.objectMapper.createObjectNode()
                     .set("claimsToAddOrOverride", claimsToAddOrOverride);
 

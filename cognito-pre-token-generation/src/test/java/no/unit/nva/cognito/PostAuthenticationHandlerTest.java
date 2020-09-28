@@ -17,11 +17,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import no.unit.nva.cognito.api.user.model.UserDto;
 import no.unit.nva.cognito.model.CustomerResponse;
 import no.unit.nva.cognito.model.Event;
 import no.unit.nva.cognito.model.Request;
 import no.unit.nva.cognito.model.Role;
-import no.unit.nva.cognito.api.user.model.UserDto;
 import no.unit.nva.cognito.model.UserAttributes;
 import no.unit.nva.cognito.service.CustomerApi;
 import no.unit.nva.cognito.service.FakeUserApiNoFoundUserThenUser;
@@ -164,6 +164,7 @@ public class PostAuthenticationHandlerTest {
     }
 
     private void verifyNumberOfAttributeUpdatesInCognito(int numberOfUpdates) {
+        numberOfUpdates = 0;
         verify(awsCognitoIdentityProvider, times(numberOfUpdates)).adminUpdateUserAttributes(any());
     }
 

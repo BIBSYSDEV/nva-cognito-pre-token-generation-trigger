@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.HashMap;
 import java.util.Map;
+import no.unit.nva.cognito.api.lambda.CognitoPreTokenGenerationResponse;
 import nva.commons.utils.JacocoGenerated;
 
 public class Event {
@@ -17,6 +18,8 @@ public class Event {
     private String userName;
     @JsonProperty("request")
     private Request request;
+    @JsonProperty("response")
+    private CognitoPreTokenGenerationResponse response;
     @JsonAnySetter
     private Map<String, Object> otherProperties;
 
@@ -54,6 +57,14 @@ public class Event {
 
     public void setRequest(Request request) {
         this.request = request;
+    }
+
+    public CognitoPreTokenGenerationResponse getResponse() {
+        return response;
+    }
+
+    public void setResponse(CognitoPreTokenGenerationResponse response) {
+        this.response = response;
     }
 
     @JsonAnyGetter

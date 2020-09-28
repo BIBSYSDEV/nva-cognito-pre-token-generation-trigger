@@ -6,12 +6,14 @@ import com.amazonaws.services.cognitoidp.AWSCognitoIdentityProviderClient;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestStreamHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.http.HttpClient;
+import java.util.HashMap;
 import java.util.Optional;
+import no.unit.nva.cognito.api.lambda.ClaimsOverrideDetails;
+import no.unit.nva.cognito.api.lambda.CognitoPreTokenGenerationResponse;
 import no.unit.nva.cognito.model.CustomerResponse;
 import no.unit.nva.cognito.model.Event;
 import no.unit.nva.cognito.model.UserAttributes;
@@ -116,23 +118,23 @@ public class PostAuthenticationHandler implements RequestStreamHandler {
 
         if (event.getTriggerSource() != null && event.getTriggerSource()
             .startsWith(TRIGGER_SOURCE__TOKEN_GENERATION_PREFIX)) {
-            var responseRoot = JsonUtils.objectMapper.createObjectNode();
-            var response = responseRoot.putObject("response");
-            if (customerId.isPresent() && cristinId.isPresent()) {
-                ObjectNode claimsToAddOrOverride = JsonUtils.objectMapper.createObjectNode();
-                customerId.ifPresent(v -> claimsToAddOrOverride.put("custom:customerId", v));
-                cristinId.ifPresent(v -> claimsToAddOrOverride.put("custom:cristinId", v));
-                /*customerId.ifPresent(v -> claimsToAddOrOverride.put("customerId", v));
-                cristinId.ifPresent(v -> claimsToAddOrOverride.put("cristinId", v));
-                claimsToAddOrOverride.put("feideYearOfBirth", "1999");
-                claimsToAddOrOverride.put("custom:yearOfBirth", "1985");*/
-                var claimsOverrideDetails = JsonUtils.objectMapper.createObjectNode()
-                    .set("claimsToAddOrOverride", claimsToAddOrOverride);
 
-                response.set("claimsOverrideDetails", claimsOverrideDetails);
+            var response = new CognitoPreTokenGenerationResponse();
+
+
+            if (customerId.isPresent() && cristinId.isPresent()) {
+                var claimsToAddOrOverride = new ClaimsOverrideDetails();
+                var customProperties = new HashMap<String, String>();
+                customerId.ifPresent(v -> customProperties.put("custom:customerId", v));
+                cristinId.ifPresent(v -> customProperties.put("custom:cristinId", v));
+                if (!customProperties.isEmpty()) {
+                    claimsToAddOrOverride.setClaimsToAddOrOverride(customProperties);
+                    response.setClaimsOverrideDetails(claimsToAddOrOverride);
+                }
             }
-            JsonUtils.objectMapper.writeValue(output, responseRoot);
+            event.setResponse(response);
         }
+        JsonUtils.objectMapper.writeValue(output, event);
     }
 
     /**

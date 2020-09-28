@@ -1,33 +1,44 @@
 package no.unit.nva.cognito.api.lambda;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class ClaimsOverrideDetails {
+    @JsonProperty("claimsToAddOrOverride")
     private Map<String, String> claimsToAddOrOverride;
+    @JsonProperty("claimsToSuppress")
     private List<String> claimsToSuppress;
+    @JsonProperty("groupsOverrideDetails")
     private GroupOverrideDetails groupsOverrideDetails;
 
-    @JsonCreator
-    public ClaimsOverrideDetails(@JsonProperty("claimsToAddOrOverride") Map<String, String> claimsToAddOrOverride,
-                                 @JsonProperty("claimsToSuppress") List<String> claimsToSuppress,
-                                 @JsonProperty("groupsOverrideDetails") GroupOverrideDetails groupsOverrideDetails) {
-        this.claimsToAddOrOverride = claimsToAddOrOverride;
-        this.claimsToSuppress = claimsToSuppress;
-        this.groupsOverrideDetails = groupsOverrideDetails;
+    public ClaimsOverrideDetails() {
     }
 
     public Map<String, String> getClaimsToAddOrOverride() {
         return claimsToAddOrOverride;
     }
 
+    public void setClaimsToAddOrOverride(Map<String, String> claimsToAddOrOverride) {
+        this.claimsToAddOrOverride = claimsToAddOrOverride;
+    }
+
     public List<String> getClaimsToSuppress() {
         return claimsToSuppress;
+    }
+
+    public void setClaimsToSuppress(List<String> claimsToSuppress) {
+        this.claimsToSuppress = claimsToSuppress;
     }
 
     public GroupOverrideDetails getGroupsOverrideDetails() {
         return groupsOverrideDetails;
     }
+
+    public void setGroupsOverrideDetails(GroupOverrideDetails groupsOverrideDetails) {
+        this.groupsOverrideDetails = groupsOverrideDetails;
+    }
+
+
 }

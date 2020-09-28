@@ -4,19 +4,14 @@ import static no.unit.nva.cognito.util.OrgNumberCleaner.removeCountryPrefix;
 
 import com.amazonaws.services.cognitoidp.AWSCognitoIdentityProviderClient;
 import com.amazonaws.services.lambda.runtime.Context;
-import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.RequestStreamHandler;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.http.HttpClient;
-import java.util.Map;
 import java.util.Optional;
-import no.unit.nva.cognito.api.lambda.CognitoPreTokenGenerationResponse;
 import no.unit.nva.cognito.model.CustomerResponse;
 import no.unit.nva.cognito.model.Event;
 import no.unit.nva.cognito.model.UserAttributes;
@@ -111,33 +106,32 @@ public class PostAuthenticationHandler implements RequestStreamHandler {
         customerId.ifPresent(updatedUserAttributes::setCustomerId);
         cristinId.ifPresent(updatedUserAttributes::setCristinId);
 
-//        User user = userService.getOrCreateUserFromToken(
-//            userPoolId,
-//            userName,
-//            originalUserAttributes,
-//            userAttributes
-//        );
+        //        User user = userService.getOrCreateUserFromToken(
+        //            userPoolId,
+        //            userName,
+        //            originalUserAttributes,
+        //            userAttributes
+        //        );
         //user.updateCustomAttributesInUserPool();
-
 
         if (event.getTriggerSource() != null && event.getTriggerSource()
             .startsWith(TRIGGER_SOURCE__TOKEN_GENERATION_PREFIX)) {
+            var responseRoot = JsonUtils.objectMapper.createObjectNode();
+            var response = responseRoot.putObject("response");
             if (customerId.isPresent() && cristinId.isPresent()) {
                 ObjectNode claimsToAddOrOverride = JsonUtils.objectMapper.createObjectNode();
-               /* customerId.ifPresent(v -> claimsToAddOrOverride.put("custom:customerId", v));
+                customerId.ifPresent(v -> claimsToAddOrOverride.put("custom:customerId", v));
                 cristinId.ifPresent(v -> claimsToAddOrOverride.put("custom:cristinId", v));
-                customerId.ifPresent(v -> claimsToAddOrOverride.put("customerId", v));
-                cristinId.ifPresent(v -> claimsToAddOrOverride.put("cristinId", v));*/
+                /*customerId.ifPresent(v -> claimsToAddOrOverride.put("customerId", v));
+                cristinId.ifPresent(v -> claimsToAddOrOverride.put("cristinId", v));
                 claimsToAddOrOverride.put("feideYearOfBirth", "1999");
-                claimsToAddOrOverride.put("custom:yearOfBirth", "1985"); // existing attribute from feide
+                claimsToAddOrOverride.put("custom:yearOfBirth", "1985");*/
                 var claimsOverrideDetails = JsonUtils.objectMapper.createObjectNode()
                     .set("claimsToAddOrOverride", claimsToAddOrOverride);
 
-                JsonUtils.objectMapper.writeValue(output, JsonUtils.objectMapper.createObjectNode()
-                    .set("claimsOverrideDetails", claimsOverrideDetails));
-            } else {
-                JsonUtils.objectMapper.writeValue(output, JsonUtils.objectMapper.createObjectNode());
+                response.set("claimsOverrideDetails", claimsOverrideDetails);
             }
+            JsonUtils.objectMapper.writeValue(output, responseRoot);
         }
     }
 

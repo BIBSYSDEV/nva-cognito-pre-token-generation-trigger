@@ -5,12 +5,18 @@ import static no.unit.nva.cognito.util.OrgNumberCleaner.removeCountryPrefix;
 import com.amazonaws.services.cognitoidp.AWSCognitoIdentityProviderClient;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
+import com.amazonaws.services.lambda.runtime.RequestStreamHandler;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.http.HttpClient;
 import java.util.Map;
 import java.util.Optional;
+import no.unit.nva.cognito.api.lambda.CognitoPreTokenGenerationResponse;
 import no.unit.nva.cognito.model.CustomerResponse;
 import no.unit.nva.cognito.model.Event;
 import no.unit.nva.cognito.model.UserAttributes;
@@ -25,7 +31,7 @@ import nva.commons.utils.aws.SecretsReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class PostAuthenticationHandler implements RequestHandler<Map<String, Object>, Map<String, Object>> {
+public class PostAuthenticationHandler implements RequestStreamHandler {
 
     public static final String CUSTOM_APPLICATION_ROLES = "custom:applicationRoles";
     public static final String CUSTOM_APPLICATION = "custom:application";
@@ -83,8 +89,7 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
     }
 
     @Override
-    public Map<String, Object> handleRequest(Map<String, Object> input, Context context) {
-
+    public void handleRequest(InputStream input, OutputStream output, Context context) throws IOException {
         Event event = parseEventFromInput(input);
         logger.info("event from source: " + event.getTriggerSource());
         //if (!TRIGGER_SOURCE__TOKEN_GENERATION_HOSTED_AUTH.equals(event.getTriggerSource())) {
@@ -128,19 +133,12 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
                 var claimsOverrideDetails = JsonUtils.objectMapper.createObjectNode()
                     .set("claimsToAddOrOverride", claimsToAddOrOverride);
 
-                input.put("response", JsonUtils.objectMapper.createObjectNode()
+                JsonUtils.objectMapper.writeValue(output, JsonUtils.objectMapper.createObjectNode()
                     .set("claimsOverrideDetails", claimsOverrideDetails));
             } else {
-                input.put("response", JsonUtils.objectMapper.createObjectNode());
-            }
-            try {
-                logger.info("response is: " + JsonUtils.objectMapper.writeValueAsString(input.get("response")));
-            } catch (JsonProcessingException e) {
-                logger.error("Json processing when printing response", e);
+                JsonUtils.objectMapper.writeValue(output, JsonUtils.objectMapper.createObjectNode());
             }
         }
-        return input;
-
     }
 
     /**
@@ -150,8 +148,8 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
      * @param input event json as map
      * @return event
      */
-    private Event parseEventFromInput(Map<String, Object> input) {
-        return JsonUtils.objectMapper.convertValue(input, Event.class);
+    private Event parseEventFromInput(InputStream input) throws IOException {
+        return JsonUtils.objectMapper.readValue(input, Event.class);
     }
 
     private Optional<CustomerResponse> mapOrgNumberToCustomer(String orgNumber) {

@@ -119,11 +119,11 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
             .startsWith(TRIGGER_SOURCE__TOKEN_GENERATION_PREFIX)) {
             if (customerId.isPresent() && cristinId.isPresent()) {
                 ObjectNode claimsToAddOrOverride = JsonUtils.objectMapper.createObjectNode();
-                customerId.ifPresent(v -> claimsToAddOrOverride.put("custom:customerId", v));
+               /* customerId.ifPresent(v -> claimsToAddOrOverride.put("custom:customerId", v));
                 cristinId.ifPresent(v -> claimsToAddOrOverride.put("custom:cristinId", v));
                 customerId.ifPresent(v -> claimsToAddOrOverride.put("customerId", v));
-                cristinId.ifPresent(v -> claimsToAddOrOverride.put("cristinId", v));
-
+                cristinId.ifPresent(v -> claimsToAddOrOverride.put("cristinId", v));*/
+                claimsToAddOrOverride.put("feideYearOfBirth", "1999");
                 claimsToAddOrOverride.put("custom:yearOfBirth", "1985"); // existing attribute from feide
                 var claimsOverrideDetails = JsonUtils.objectMapper.createObjectNode()
                     .set("claimsToAddOrOverride", claimsToAddOrOverride);

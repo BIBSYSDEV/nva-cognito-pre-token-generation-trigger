@@ -1,11 +1,10 @@
-package no.unit.nva.cognito.model;
+package no.unit.nva.cognito.api.lambda.event;
 
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.HashMap;
 import java.util.Map;
-import no.unit.nva.cognito.api.lambda.CognitoPreTokenGenerationResponse;
 import nva.commons.utils.JacocoGenerated;
 
 public class Event {

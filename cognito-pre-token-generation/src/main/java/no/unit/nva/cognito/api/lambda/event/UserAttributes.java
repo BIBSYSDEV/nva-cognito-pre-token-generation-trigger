@@ -1,4 +1,4 @@
-package no.unit.nva.cognito.model;
+package no.unit.nva.cognito.api.lambda.event;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -81,6 +81,12 @@ public class UserAttributes {
     public void setCustomerId(String customerId) {
         this.customerId = customerId;
     }
+
+    @JsonIgnore
+    public boolean hasCustomerAttributes() {
+        return (getCustomerId() != null && getCristinId() != null);
+    }
+
 
     /**
      * Returns a deep copy of this instance.

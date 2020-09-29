@@ -1,13 +1,16 @@
 package no.unit.nva.cognito.service;
 
+import static no.unit.nva.cognito.util.OrgNumberCleaner.removeCountryPrefix;
+
 import com.amazonaws.services.cognitoidp.AWSCognitoIdentityProvider;
 import com.amazonaws.services.cognitoidp.model.AdminUpdateUserAttributesRequest;
 import com.amazonaws.services.cognitoidp.model.AttributeType;
 import java.util.Objects;
+import no.unit.nva.cognito.api.lambda.event.CustomerResponse;
 import no.unit.nva.cognito.model.Role;
 import no.unit.nva.cognito.api.user.model.UserDto;
 import no.unit.nva.cognito.model.User;
-import no.unit.nva.cognito.model.UserAttributes;
+import no.unit.nva.cognito.api.lambda.event.UserAttributes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,58 +27,82 @@ public class UserService {
 
     public static final String USER = "User";
     public static final String CREATOR = "Creator";
-    public static final String EMPLOYEE = "employee";
-    public static final String MEMBER = "member";
-    public static final String STAFF = "staff";
+
+    // https://www.feide.no/attribute/edupersonaffiliation Documentation about Feide affiliations.
+    public static final String FEIDE_AFFILIATION_EMPLOYEE = "employee";
+    public static final String FEIDE_AFFILIATION_MEMBER = "member";
+    public static final String FEIDE_AFFILIATION_STAFF = "staff";
+    public static final String FEIDE_AFFILIATION_FACULTY = "faculty";
 
     private static final Logger logger = LoggerFactory.getLogger(UserService.class);
+    private final CustomerApiClient customerApi;
 
     public UserService(UserApi userApiService,
-                       AWSCognitoIdentityProvider awsCognitoIdentityProvider) {
+                       AWSCognitoIdentityProvider awsCognitoIdentityProvider,
+                       CustomerApiClient customerApiClient) {
         this.userApiService = userApiService;
         this.awsCognitoIdentityProvider = awsCognitoIdentityProvider;
+        this.customerApi = customerApiClient;
     }
 
     /**
-     * Retreive user from user cataloge or creates it from the token's user attributes.
+     * Creates user from token
      * @param userPoolId        userPoolId in Cognito
      * @param cognitoUserName   cognito's username
-     * @param originalUserAttributes cognito's user attributes (before we ran updated for our custom:attributes)
-     * @param userAttributes    updated cognito's user attributes with our custom: attributes.
+     * @param originalUserAttributes cognito's user attributes (coming from event which source is cognito's user pool)
      * @return User business object
      */
-    public User getOrCreateUserFromToken(String userPoolId,
-                                         String cognitoUserName,
-                                         UserAttributes originalUserAttributes,
-                                         UserAttributes userAttributes) {
+    public User createUserFromToken(String userPoolId,
+                                    String cognitoUserName,
+                                    UserAttributes originalUserAttributes) {
 
-        var apiUser = userApiService
-            // Can customerId from orgnumber lookup be authorative for saying this user
-            // is a customer? And we can always update user object from token?
-            // Wanted rule: Always up2date token for clients, eventually updated dynamodb.
-            .getUser(userAttributes.getFeideId())
-            .orElseGet(() -> createUser(userAttributes.getFeideId(),
-                userAttributes.getGivenName(),
-                userAttributes.getFamilyName(),
-                userAttributes.getCustomerId(),
-                userAttributes.getCristinId(),
-                userAttributes.getAffiliation()));
+        UserAttributes maybeUpdatedProperties = originalUserAttributes.getDeepCopy();
+        var newUser = false;
+        if (!maybeUpdatedProperties.hasCustomerAttributes()) {
+            newUser = true;
+            var maybeCustomer = customerApi.getCustomer(
+                removeCountryPrefix(maybeUpdatedProperties.getOrgNumber()));
 
-        var wasMissingCustomAttributesInOriginalUserAttributes =
-            isOriginalUserAttributesMissingCustomAttributes(originalUserAttributes, userAttributes);
+            var maybeCustomerId = maybeCustomer.map(CustomerResponse::getCustomerId);
+            var maybeCristinId = maybeCustomer.map(CustomerResponse::getCristinId);
+
+            maybeCustomerId.ifPresent(maybeUpdatedProperties::setCustomerId);
+            maybeCristinId.ifPresent(maybeUpdatedProperties::setCristinId);
+        }
+
+
+        var apiUser = createUser(maybeUpdatedProperties.getFeideId(),
+            maybeUpdatedProperties.getGivenName(),
+            maybeUpdatedProperties.getFamilyName(),
+            maybeUpdatedProperties.getCustomerId(),
+            maybeUpdatedProperties.getCristinId(),
+            maybeUpdatedProperties.getAffiliation());
+
 
         return new User(userPoolId,
             cognitoUserName,
             apiUser,
-            userAttributes,
-            wasMissingCustomAttributesInOriginalUserAttributes,
+            maybeUpdatedProperties,
+            newUser,
             this);
     }
 
-    private boolean isOriginalUserAttributesMissingCustomAttributes(UserAttributes originalUserAttributes,
-                                                                    UserAttributes userAttributes) {
-        return !hasCustomerAttributes(originalUserAttributes.getCustomerId(), originalUserAttributes.getCristinId())
-            && hasCustomerAttributes(userAttributes.getCustomerId(), userAttributes.getCristinId());
+    /**
+     * Deprecated and should be refactored into UserManagement to react on events.
+     * @param userDto
+     */
+    @Deprecated
+    public void temporaryFireAndForgetCreateUser(UserDto userDto) {
+        userApiService.createUser(userDto);
+    }
+
+    /**
+     * Deprecated and should be refactored into UserManagement to react on events.
+     * @param userDto
+     */
+    @Deprecated
+    public void temporaryFireAndForgetUpdateUser(UserDto userDto) {
+        userApiService.updateUser(userDto);
     }
 
     /**
@@ -106,16 +133,6 @@ public class UserService {
         } else {
             userDto = createUserWithoutInstitution(username, givenName, familyName);
         }
-        // Send async event, so eventually the user gets stored in dynamodb.
-        /*try {
-            userApi.createUser(user);
-        } catch (CreateUserFailedException e) {
-            // Allow conflicts
-            if (!e.isConflictWithExistingUser()) {
-                throw e;
-            }
-            userApi.updateUser(user);
-        }*/
         return userDto;
     }
 
@@ -145,15 +162,26 @@ public class UserService {
 
     private List<Role> createRolesFromAffiliation(String affiliation) {
         List<Role> roles = new ArrayList<>();
-        // TODO: Verify conditions from https://unit.atlassian.net/browse/NP-1491
-        // TODO: Verify conditions from ?? (dont remember second user story)
-        if (affiliation.contains(STAFF)
-            || affiliation.contains(EMPLOYEE)
-            || affiliation.contains(MEMBER)
-        ) {
+        // https://unit.atlassian.net/browse/NP-1491
+        if (isScientificOrTechnicalAdministrativeEmployee(affiliation)) {
             roles.add(new Role(CREATOR));
         }
 
         return roles;
+    }
+
+    /**
+     * Check if affiliation attribute tells us this is a scientific employee or technical administrative employee.
+     * @see <a href="https://unit.atlassian.net/browse/NP-1491">https://unit.atlassian.net/browse/NP-1491</a>
+     * @see
+     * <a href="https://www.feide.no/attribute/edupersonaffiliation">https://www.feide.no/attribute/edupersonaffiliation</a>
+     * @param feideAffiliation
+     * @return <code>true</code> if scientific employee or technical administrative employee.
+     */
+    private boolean isScientificOrTechnicalAdministrativeEmployee(String feideAffiliation) {
+        return feideAffiliation.contains(FEIDE_AFFILIATION_MEMBER)
+            && feideAffiliation.contains(FEIDE_AFFILIATION_EMPLOYEE) && (feideAffiliation.contains(FEIDE_AFFILIATION_FACULTY)
+            || feideAffiliation.contains(
+            FEIDE_AFFILIATION_STAFF));
     }
 }

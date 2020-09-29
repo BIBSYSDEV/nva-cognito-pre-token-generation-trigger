@@ -2,6 +2,7 @@ package no.unit.nva.cognito.model;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import no.unit.nva.cognito.api.lambda.event.Event;
 import nva.commons.utils.IoUtils;
 import nva.commons.utils.JsonUtils;
 import org.junit.jupiter.api.Assertions;

@@ -1,4 +1,4 @@
-package no.unit.nva.cognito.model;
+package no.unit.nva.cognito.api.lambda.event;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;

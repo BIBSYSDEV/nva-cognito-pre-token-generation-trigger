@@ -1,7 +1,7 @@
 package no.unit.nva.cognito.service;
 
 import static java.util.Collections.singletonList;
-import static no.unit.nva.cognito.PostAuthenticationHandlerTest.SAMPLE_CRISTIN_ID;
+import static no.unit.nva.cognito.PreTokenGenerationTriggerHandlerTest.SAMPLE_CRISTIN_ID;
 import static no.unit.nva.cognito.service.UserApiClient.USER_API_HOST;
 import static no.unit.nva.cognito.service.UserApiClient.USER_API_SCHEME;
 import static no.unit.nva.cognito.service.UserApiClient.USER_SERVICE_SECRET_KEY;

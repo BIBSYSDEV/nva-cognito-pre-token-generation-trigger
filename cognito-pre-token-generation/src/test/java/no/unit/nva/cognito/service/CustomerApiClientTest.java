@@ -19,7 +19,7 @@ import java.io.IOException;
 import java.net.http.HttpClient;
 import java.net.http.HttpResponse;
 import java.util.Optional;
-import no.unit.nva.cognito.model.CustomerResponse;
+import no.unit.nva.cognito.api.lambda.event.CustomerResponse;
 import nva.commons.utils.Environment;
 import nva.commons.utils.JsonUtils;
 import org.junit.jupiter.api.BeforeEach;

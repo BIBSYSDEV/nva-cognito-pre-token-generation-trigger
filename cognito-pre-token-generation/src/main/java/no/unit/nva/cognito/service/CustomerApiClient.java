@@ -10,7 +10,7 @@ import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.util.Optional;
 import java.util.function.Supplier;
-import no.unit.nva.cognito.model.CustomerResponse;
+import no.unit.nva.cognito.api.lambda.event.CustomerResponse;
 import nva.commons.utils.Environment;
 import nva.commons.utils.attempt.ConsumerWithException;
 import nva.commons.utils.attempt.Failure;

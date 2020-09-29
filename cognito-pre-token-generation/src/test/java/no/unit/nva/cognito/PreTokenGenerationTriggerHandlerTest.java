@@ -1,6 +1,7 @@
 package no.unit.nva.cognito;
 
-import static no.unit.nva.cognito.PostAuthenticationHandler.TRIGGER_SOURCE__TOKEN_GENERATION_REFRESH_TOKENS;
+import static no.unit.nva.cognito.PreTokenGenerationTriggerHandler.TRIGGER_SOURCE__TOKEN_GENERATION_REFRESH_TOKENS;
+import static no.unit.nva.cognito.PreTokenGenerationTriggerHandler.newCustomerApiClient;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -20,15 +21,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import no.unit.nva.cognito.api.lambda.CognitoPreTokenGenerationResponse;
+import no.unit.nva.cognito.api.lambda.event.CognitoPreTokenGenerationResponse;
 import no.unit.nva.cognito.api.user.model.UserDto;
-import no.unit.nva.cognito.model.CustomerResponse;
-import no.unit.nva.cognito.model.Event;
-import no.unit.nva.cognito.model.Request;
+import no.unit.nva.cognito.api.lambda.event.CustomerResponse;
+import no.unit.nva.cognito.api.lambda.event.Event;
+import no.unit.nva.cognito.api.lambda.event.Request;
 import no.unit.nva.cognito.model.Role;
-import no.unit.nva.cognito.model.UserAttributes;
+import no.unit.nva.cognito.api.lambda.event.UserAttributes;
 import no.unit.nva.cognito.service.CustomerApi;
 import no.unit.nva.cognito.service.FakeUserApiNoFoundUserThenUser;
 import no.unit.nva.cognito.service.UserApi;
@@ -39,7 +39,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 @SuppressWarnings("unchecked")
-public class PostAuthenticationHandlerTest {
+public class PreTokenGenerationTriggerHandlerTest {
 
     public static final String SAMPLE_ORG_NUMBER = "1234567890";
     public static final String SAMPLE_AFFILIATION = "[member, employee, staff]";
@@ -59,7 +59,7 @@ public class PostAuthenticationHandlerTest {
     private CustomerApi customerApi;
     private UserApi userApi;
     private UserService userService;
-    private PostAuthenticationHandler handler;
+    private PreTokenGenerationTriggerHandler handler;
     private AWSCognitoIdentityProvider awsCognitoIdentityProvider;
 
     /**
@@ -70,8 +70,8 @@ public class PostAuthenticationHandlerTest {
         customerApi = mock(CustomerApi.class);
         userApi = new UserApiMock();
         awsCognitoIdentityProvider = mock(AWSCognitoIdentityProvider.class);
-        userService = new UserService(userApi, awsCognitoIdentityProvider);
-        handler = new PostAuthenticationHandler(userService, customerApi);
+        userService = new UserService(userApi, awsCognitoIdentityProvider, newCustomerApiClient());
+        handler = new PreTokenGenerationTriggerHandler(userService);
     }
 
     @Test
@@ -142,8 +142,8 @@ public class PostAuthenticationHandlerTest {
 
         userApi = new FakeUserApiNoFoundUserThenUser();
         awsCognitoIdentityProvider = mock(AWSCognitoIdentityProvider.class);
-        userService = new UserService(userApi, awsCognitoIdentityProvider);
-        handler = new PostAuthenticationHandler(userService, customerApi);
+        userService = new UserService(userApi, awsCognitoIdentityProvider, newCustomerApiClient());
+        handler = new PreTokenGenerationTriggerHandler(userService);
 
         prepareMocksWithExistingCustomer();
 
@@ -170,8 +170,7 @@ public class PostAuthenticationHandlerTest {
         ObjectNode claimsToAddOrOverride = JsonUtils.objectMapper.createObjectNode();
         claimsToAddOrOverride.put("custom:customerId", SAMPLE_CUSTOMER_ID);
         claimsToAddOrOverride.put("custom:cristinId", SAMPLE_CRISTIN_ID);
-        /*customerId.ifPresent(v -> claimsToAddOrOverride.put("customerId", v));
-        cristinId.ifPresent(v -> claimsToAddOrOverride.put("cristinId", v));*/
+
         var claimsOverrideDetails = JsonUtils.objectMapper.createObjectNode();
         claimsOverrideDetails
             .putObject("claimsOverrideDetails")

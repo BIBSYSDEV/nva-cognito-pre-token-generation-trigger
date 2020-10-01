@@ -149,10 +149,18 @@ Resources:
               detail:
                 type: string
 
+  ApiGatewayResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: GetAtt UpsertUserApi.RootResourceId
+      PathPart: 'upsertuser'
+      RestApiId: !Ref UpsertUserApi
+
+
   UpsertUserLAambdaApiMethod:
     Type: AWS::ApiGateway::Method
     Properties:
-      AuthorizationType: COGNITO_USER_POOLS
+      AuthorizationType: NONE
       ResourceId: GetAtt UpsertUserApi.RootResourceId
       RestApiId: !Ref UpsertUserApi
       HttpMethod: Post

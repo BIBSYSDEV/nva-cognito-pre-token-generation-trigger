@@ -149,7 +149,17 @@ Resources:
               detail:
                 type: string
 
-
+  UpsertUserLAambdaApiMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      ResourceId: GetAtt UpsertUserApi.RootResourceId
+      RestApiId: !Ref UpsertUserApi
+      HttpMethod: Post
+      Integration:
+        RequestParameters:
+          - integration.request.header.X-Amz-Invocation-Type: 'Event'
+#          - method.request.header.InvocationType
+#          - method.request.header.X-Amz-Invocation-Type
 
 
 

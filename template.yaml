@@ -155,11 +155,11 @@ Resources:
       ResourceId: GetAtt UpsertUserApi.RootResourceId
       RestApiId: !Ref UpsertUserApi
       HttpMethod: Post
-      Integration:
-        RequestParameters:
-          - integration.request.header.X-Amz-Invocation-Type: 'Event'
-#          - method.request.header.InvocationType
-#          - method.request.header.X-Amz-Invocation-Type
+        Integration:
+          IntegrationHttpMethod: POST
+          Type: "AWS"
+          RequestParameters:
+            "integration.request.header.X-Amz-Invocation-Type": "'Event'"
 
 
 

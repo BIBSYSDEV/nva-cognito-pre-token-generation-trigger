@@ -189,4 +189,23 @@ Resources:
           USER_API_HOST: !Ref CustomDomain
           USER_SERVICE_SECRET_NAME: !Ref UserServiceSecretName
           USER_SERVICE_SECRET_KEY: !Ref UserServiceSecretKey
+      Events:
+        Trigger:
+          Type: CloudWatchEvent
+          Properties:
+            Pattern:
+              source:
+                - aws.cognito-idp
 
+
+#  EventRuleCase1:
+#    Type: AWS::Events::Rule
+#    Properties:
+#      Description: "upserting users"
+#      EventPattern:
+#        source: ["aws.cognito-idp"]
+#      State: "ENABLED"
+#      Targets:
+#        - Arn:
+#            GetAtt: UpsertUserLambda.Arn
+#          Id: "atmConsumerTarget1"

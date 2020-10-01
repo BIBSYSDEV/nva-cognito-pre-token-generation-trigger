@@ -183,7 +183,7 @@ Resources:
             'body': event
           }
       Handler: index.handler
-      Runtime: python3.6
+      Runtime: python3.8
       Role: !GetAtt TriggerExecutionRole.Arn
 
 

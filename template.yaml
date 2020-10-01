@@ -162,6 +162,29 @@ Resources:
         RequestParameters:
           "integration.request.header.X-Amz-Invocation-Type": "'Event'"
 
+  PreTokenTriggerPython:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        ZipFile: |
+          import traceback
+          import json
+          import requests
+          import json
+
+          def lambda_handler(event, context):
+            if not (event['request']['userAttributes']['custom:customerId']):
+              print("missing customerId")
+              requests.post("/upsertuser", event)
+            else:
+              print("has customerid")
+            return {
+            'statusCode': 200,
+            'body': event
+          }
+      Handler: index.handler
+      Runtime: python3.6
+      Role: !GetAtt TriggerExecutionRole.Arn
 
 
   UpsertUserLambda:

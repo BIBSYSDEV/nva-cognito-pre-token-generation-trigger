@@ -86,68 +86,71 @@ Resources:
       Principal: cognito-idp.amazonaws.com
 
   UpsertUserApi:
-    Type: AWS::Serverless::Api
+#    Type: AWS::Serverless::Api
+    Type: AWS::ApiGateway::RestApi
     Properties:
-      AccessLogSetting:
-        DestinationArn: !GetAtt ApiAccessLogGroup.Arn
-        Format: '{ "apiId": "$context.apiId", "requestId": "$context.requestId", "requestTime": "$context.requestTime", "requestTimeEpoch": "$context.requestTimeEpoch", "httpMethod": "$context.httpMethod", "path": "$context.path", "status": "$context.status",  "error.message": "$context.error.message" }'
-      StageName: Prod
-      EndpointConfiguration: REGIONAL
-      DefinitionBody:
-        openapi: 3.0.3
-        info:
-          title: NVA Update user attributes API
-          version: '0.0.2'
-        paths:
-          /upsertuser:
-            post:
-              summary: Update user attributes in Cognito and UsersAndRoles
-              consumes:
-                - application/json
-              produces:
-                - application/json
-              parameters:
-                - in: body
-                  name: event
-                  description: event from cognito.
-                  required: true
-                  schema:
-                    type: object
-              x-amazon-apigateway-integration:
-                uri:
-                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${UpsertUserLambda.Arn}/invocations
-                responses: {}
-                httpMethod: POST
-                type: AWS_PROXY
-              responses:
-                '200':
-                  description: OK
-                  schema:
-                    $ref: '#/definitions/Publication'
-                '400':
-                  description: Bad Request
-                  schema:
-                    $ref: '#/definitions/Problem'
-                '404':
-                  description: Not Found
-                  schema:
-                    $ref: '#/definitions/Problem'
-                '502':
-                  description: Bad Gateway
-                  schema:
-                    $ref: '#/definitions/Problem'
-        definitions:
-          Publication:
-            type: object
-          Problem:
-            type: object
-            properties:
-              title:
-                type: string
-              status:
-                type: integer
-              detail:
-                type: string
+#      AccessLogSetting:
+#        DestinationArn: !GetAtt ApiAccessLogGroup.Arn
+#        Format: '{ "apiId": "$context.apiId", "requestId": "$context.requestId", "requestTime": "$context.requestTime", "requestTimeEpoch": "$context.requestTimeEpoch", "httpMethod": "$context.httpMethod", "path": "$context.path", "status": "$context.status",  "error.message": "$context.error.message" }'
+#      StageName: Prod
+      EndpointConfiguration:
+        Types:
+          - REGIONAL
+#      DefinitionBody:
+#        openapi: 3.0.3
+#        info:
+#          title: NVA Update user attributes API
+#          version: '0.0.2'
+#        paths:
+#          /upsertuser:
+#            post:
+#              summary: Update user attributes in Cognito and UsersAndRoles
+#              consumes:
+#                - application/json
+#              produces:
+#                - application/json
+#              parameters:
+#                - in: body
+#                  name: event
+#                  description: event from cognito.
+#                  required: true
+#                  schema:
+#                    type: object
+#              x-amazon-apigateway-integration:
+#                uri:
+#                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${UpsertUserLambda.Arn}/invocations
+#                responses: {}
+#                httpMethod: POST
+#                type: AWS_PROXY
+#              responses:
+#                '200':
+#                  description: OK
+#                  schema:
+#                    $ref: '#/definitions/Publication'
+#                '400':
+#                  description: Bad Request
+#                  schema:
+#                    $ref: '#/definitions/Problem'
+#                '404':
+#                  description: Not Found
+#                  schema:
+#                    $ref: '#/definitions/Problem'
+#                '502':
+#                  description: Bad Gateway
+#                  schema:
+#                    $ref: '#/definitions/Problem'
+#        definitions:
+#          Publication:
+#            type: object
+#          Problem:
+#            type: object
+#            properties:
+#              title:
+#                type: string
+#              status:
+#                type: integer
+#              detail:
+#                type: string
 
   ApiGatewayResource:
     Type: AWS::ApiGateway::Resource

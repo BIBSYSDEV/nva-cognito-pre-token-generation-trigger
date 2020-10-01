@@ -49,7 +49,7 @@ public class PostAuthenticationHandlerTest {
     private CustomerApi customerApi;
     private UserApi userApi;
     private UserService userService;
-    private PostAuthenticationHandler handler;
+    private UpsertUserHandler handler;
     private AWSCognitoIdentityProvider awsCognitoIdentityProvider;
 
     /**
@@ -61,7 +61,7 @@ public class PostAuthenticationHandlerTest {
         userApi = new UserApiMock();
         awsCognitoIdentityProvider = mock(AWSCognitoIdentityProvider.class);
         userService = new UserService(userApi, awsCognitoIdentityProvider);
-        handler = new PostAuthenticationHandler(userService, customerApi);
+        handler = new UpsertUserHandler(userService, customerApi);
     }
 
     @Test

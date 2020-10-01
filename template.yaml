@@ -33,7 +33,11 @@ Parameters:
     Description: ARN to the Secret for Users and Role Service
 
 Resources:
-  
+
+  ApiAccessLogGroup:
+    Type: AWS::Logs::LogGroup
+
+
   TriggerExecutionRole:
     Type: AWS::IAM::Role
     Properties:
@@ -78,14 +82,82 @@ Resources:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !Ref PreTokenGenerationTrigger
+      FunctionName: !Ref UpsertUserLambda
       Principal: cognito-idp.amazonaws.com
 
-  PreTokenGenerationTrigger:
+  UpsertUserApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      AccessLogSetting:
+        DestinationArn: !GetAtt ApiAccessLogGroup.Arn
+        Format: '{ "apiId": "$context.apiId", "requestId": "$context.requestId", "requestTime": "$context.requestTime", "requestTimeEpoch": "$context.requestTimeEpoch", "httpMethod": "$context.httpMethod", "path": "$context.path", "status": "$context.status",  "error.message": "$context.error.message" }'
+      StageName: Prod
+      EndpointConfiguration: REGIONAL
+      DefinitionBody:
+        openapi: 3.0.3
+        info:
+          title: NVA Update user attributes API
+          version: '0.0.2'
+        paths:
+          /resources:
+            post:
+              summary: Update user attributes in Cognito and UsersAndRoles
+              consumes:
+                - application/json
+              produces:
+                - application/json
+              parameters:
+                - in: body
+                  name: event
+                  description: event from cognito.
+                  required: true
+                  schema:
+                    type: object
+              x-amazon-apigateway-integration:
+                uri:
+                  Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${UpsertUserLambda.Arn}/invocations
+                responses: {}
+                httpMethod: POST
+                type: AWS_PROXY
+              responses:
+                '200':
+                  description: OK
+                  schema:
+                    $ref: '#/definitions/Publication'
+                '400':
+                  description: Bad Request
+                  schema:
+                    $ref: '#/definitions/Problem'
+                '404':
+                  description: Not Found
+                  schema:
+                    $ref: '#/definitions/Problem'
+                '502':
+                  description: Bad Gateway
+                  schema:
+                    $ref: '#/definitions/Problem'
+        definitions:
+          Publication:
+            type: object
+          Problem:
+            type: object
+            properties:
+              title:
+                type: string
+              status:
+                type: integer
+              detail:
+                type: string
+
+
+
+
+
+  UpsertUserLambda:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: cognito-pre-token-generation
-      Handler: no.unit.nva.cognito.PostAuthenticationHandler::handleRequest
+      Handler: no.unit.nva.cognito.UpsertUserHandler::handleRequest
       Runtime: java11
       Role: !GetAtt TriggerExecutionRole.Arn
       MemorySize: 1408
@@ -102,9 +174,3 @@ Resources:
           USER_SERVICE_SECRET_NAME: !Ref UserServiceSecretName
           USER_SERVICE_SECRET_KEY: !Ref UserServiceSecretKey
 
-Outputs:
-  CognitoPreTokenGenerationFunction:
-    Description: ARN Identifier of the PreTokenGenerationTrigger
-    Value: !GetAtt PreTokenGenerationTrigger.Arn
-    Export:
-      Name: CognitoPreTokenGenerationFunctionArn

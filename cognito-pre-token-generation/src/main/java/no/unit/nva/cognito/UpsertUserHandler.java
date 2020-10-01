@@ -29,7 +29,7 @@ import nva.commons.utils.aws.SecretsReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class PostAuthenticationHandler implements RequestHandler<Map<String, Object>, Map<String, Object>> {
+public class UpsertUserHandler implements RequestHandler<Map<String, Object>, Map<String, Object>> {
 
     public static final String CUSTOM_APPLICATION_ROLES = "custom:applicationRoles";
     public static final String CUSTOM_APPLICATION = "custom:application";
@@ -44,14 +44,14 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
     private final UserService userService;
     private final CustomerApi customerApi;
 
-    private static final Logger logger = LoggerFactory.getLogger(PostAuthenticationHandler.class);
+    private static final Logger logger = LoggerFactory.getLogger(UpsertUserHandler.class);
 
     @JacocoGenerated
-    public PostAuthenticationHandler() {
+    public UpsertUserHandler() {
         this(newUserService(), newCustomerApiClient());
     }
 
-    public PostAuthenticationHandler(UserService userService, CustomerApi customerApi) {
+    public UpsertUserHandler(UserService userService, CustomerApi customerApi) {
         this.userService = userService;
         this.customerApi = customerApi;
     }

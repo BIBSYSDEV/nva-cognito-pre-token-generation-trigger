@@ -152,6 +152,7 @@ Resources:
   UpsertUserLAambdaApiMethod:
     Type: AWS::ApiGateway::Method
     Properties:
+      AuthorizationType: COGNITO_USER_POOLS
       ResourceId: GetAtt UpsertUserApi.RootResourceId
       RestApiId: !Ref UpsertUserApi
       HttpMethod: Post

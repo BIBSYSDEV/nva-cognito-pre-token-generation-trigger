@@ -99,7 +99,7 @@ Resources:
           title: NVA Update user attributes API
           version: '0.0.2'
         paths:
-          /resources:
+          /upsertuser:
             post:
               summary: Update user attributes in Cognito and UsersAndRoles
               consumes:

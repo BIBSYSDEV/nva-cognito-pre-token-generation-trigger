@@ -162,9 +162,6 @@ Resources:
       Role: !GetAtt TriggerExecutionRole.Arn
       MemorySize: 1408
       Timeout: 10
-      ProvisionedConcurrencyConfig:
-        ProvisionedConcurrentExecutions: 3
-      AutoPublishAlias: live
       Environment:
         Variables:
           CUSTOMER_API_SCHEME: https

@@ -155,18 +155,31 @@ Resources:
     Properties:
       Code:
         ZipFile: |
-          import requests
           import json
+          import boto3
+
+          client = boto3.client('events')
 
           def lambda_handler(event, context):
             customerId = event.get("request", {}).get("userAttributes", {}).get('custom:customerId')
             if customerId is None:
               print("missing customerId")
-              requests.post("/upsertuser", event)
+              eventbridge_put_event(event)
             else:
               print("has customerid")
-
             return event
+
+          def eventbridge_put_event(event):
+            print("eventbridge_put_event start")
+            response = client.put_events(
+            Entries=[
+                { 'Source': 'nva.cognito',
+                  'DetailType': 'updateUserAtributes',
+                  'Detail': json.dumps(event, default=str)
+                },
+              ]
+            )
+            print("eventbridge_put_event, message sendt")
       Handler: index.handler
       Runtime: python3.8
       Role: !GetAtt TriggerExecutionRole.Arn
@@ -197,15 +210,14 @@ Resources:
               source:
                 - aws.cognito-idp
 
-
-#  EventRuleCase1:
-#    Type: AWS::Events::Rule
-#    Properties:
-#      Description: "upserting users"
-#      EventPattern:
-#        source: ["aws.cognito-idp"]
-#      State: "ENABLED"
-#      Targets:
-#        - Arn:
-#            GetAtt: UpsertUserLambda.Arn
-#          Id: "atmConsumerTarget1"
+  EventRuleCaseUpdateUserAtributes:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: "upserting users"
+      EventPattern:
+        source: ["nva.cognito"]
+        detail-type: ["updateUserAtributes"]
+      State: "ENABLED"
+      Targets:
+        - Arn: !GetAtt UpsertUserLambda.Arn
+          Id: "EventRuleCaseUpdateUserAtributesId"

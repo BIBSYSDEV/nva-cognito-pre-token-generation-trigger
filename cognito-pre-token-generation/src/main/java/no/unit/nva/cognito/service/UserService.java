@@ -6,6 +6,7 @@ import com.amazonaws.services.cognitoidp.model.AttributeType;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import no.unit.nva.cognito.model.Role;
 import no.unit.nva.cognito.model.User;
@@ -20,8 +21,7 @@ public class UserService {
 
     public static final String USER = "User";
     public static final String CREATOR = "Creator";
-    public static final String EMPLOYEE = "employee";
-    public static final String MEMBER = "member";
+    public static final String FACULTY = "faculty";
     public static final String STAFF = "staff";
 
     private static final Logger logger = LoggerFactory.getLogger(UserService.class);
@@ -97,12 +97,18 @@ public class UserService {
         return new User(username, givenName, familyName, institutionId, roles);
     }
 
-    private List<Role> createRolesFromAffiliation(String affiliation) {
+    /**
+     * Create user roles from users give affiliation at organization.
+     * @see <a href="https://www.feide.no/attribute/edupersonaffiliation">Feide eduPersonAffiliation</a>
+     *
+     * @param affiliation   affiliation
+     * @return  list of roles
+     */
+    private List<Role> createRolesFromAffiliation(final String affiliation) {
+        String lowerCaseAffiliation = affiliation.toLowerCase(Locale.getDefault());
         List<Role> roles = new ArrayList<>();
-        if (affiliation.contains(STAFF)
-            || affiliation.contains(EMPLOYEE)
-            || affiliation.contains(MEMBER)
-        ) {
+
+        if (lowerCaseAffiliation.contains(STAFF) || lowerCaseAffiliation.contains(FACULTY)) {
             roles.add(new Role(CREATOR));
         }
 

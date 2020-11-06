@@ -76,7 +76,7 @@ public class PostAuthenticationHandlerTest {
 
         UserDto expected = createUserWithInstitutionAndCreatorRole();
         UserDto createdUser = getUserFromMock();
-        assertEquals(expected,createdUser);
+        assertEquals(expected, createdUser);
         assertEquals(requestEvent, responseEvent);
     }
 
@@ -91,7 +91,7 @@ public class PostAuthenticationHandlerTest {
 
         UserDto expected = createUserWithOnlyUserRole();
         UserDto createdUser = getUserFromMock();
-        assertEquals(expected,createdUser);
+        assertEquals(expected, createdUser);
         assertEquals(requestEvent, responseEvent);
     }
 
@@ -106,7 +106,7 @@ public class PostAuthenticationHandlerTest {
 
         UserDto expected = createUserWithInstitutionAndCreatorRole();
         UserDto createdUser = getUserFromMock();
-        assertEquals( expected,createdUser);
+        assertEquals(expected, createdUser);
         assertEquals(requestEvent, responseEvent);
     }
 
@@ -148,11 +148,9 @@ public class PostAuthenticationHandlerTest {
 
     private UserDto createUserWithOnlyUserRole() throws InvalidEntryInternalException {
         List<RoleDto> roles = new ArrayList<>();
-        roles.add( RoleDto.newBuilder().withName(USER).build());
+        roles.add(RoleDto.newBuilder().withName(USER).build());
         return userWithRoles(roles);
-
     }
-
 
     private UserDto userWithRoles(List<RoleDto> roles) throws InvalidEntryInternalException {
         return UserDto.newBuilder()
@@ -165,16 +163,19 @@ public class PostAuthenticationHandlerTest {
 
     private UserDto createUserWithInstitutionAndCreatorRole() throws InvalidEntryInternalException {
         List<RoleDto> roles = new ArrayList<>();
-        roles.add( RoleDto.newBuilder().withName(CREATOR).build());
+        roles.add(RoleDto.newBuilder().withName(CREATOR).build());
         roles.add(RoleDto.newBuilder().withName(USER).build());
-        return userWithRoles(roles).copy().withInstitution(SAMPLE_CUSTOMER_ID).build();
+        return userWithInstitution(userWithRoles(roles));
     }
 
     private UserDto createUserWithInstitutionAndOnlyUserRole() throws InvalidEntryInternalException {
         List<RoleDto> roles = new ArrayList<>();
-        roles.add( RoleDto.newBuilder().withName(USER).build());
-        return userWithRoles(roles);
+        roles.add(RoleDto.newBuilder().withName(USER).build());
+        return userWithInstitution(userWithRoles(roles));
+    }
 
+    private UserDto userWithInstitution(UserDto user) throws InvalidEntryInternalException {
+        return user.copy().withInstitution(SAMPLE_CUSTOMER_ID).build();
     }
 
     private Map<String, Object> createRequestEvent() {

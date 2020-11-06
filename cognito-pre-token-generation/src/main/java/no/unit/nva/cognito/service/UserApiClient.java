@@ -1,7 +1,6 @@
 package no.unit.nva.cognito.service;
 
 import static nva.commons.utils.attempt.Try.attempt;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
@@ -13,7 +12,6 @@ import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.util.Optional;
 import no.unit.nva.cognito.exception.CreateUserFailedException;
-
 import no.unit.nva.useraccessmanagement.model.UserDto;
 import nva.commons.exceptions.ForbiddenException;
 import nva.commons.utils.Environment;
@@ -39,7 +37,7 @@ public class UserApiClient implements UserApi {
     public static final String USER_SERVICE_SECRET_KEY = "USER_SERVICE_SECRET_KEY";
     public static final String AUTHORIZATION = "Authorization";
     public static final String DELIMITER = "/";
-
+    private static final Logger logger = LoggerFactory.getLogger(UserApiClient.class);
     private final ObjectMapper objectMapper;
     private final HttpClient httpClient;
     private final SecretsReader secretsReader;
@@ -47,8 +45,6 @@ public class UserApiClient implements UserApi {
     private final String userServiceSecretKey;
     private final String userApiScheme;
     private final String userApiHost;
-
-    private static final Logger logger = LoggerFactory.getLogger(UserApiClient.class);
 
     public UserApiClient(HttpClient httpClient,
                          ObjectMapper objectMapper,
@@ -61,7 +57,6 @@ public class UserApiClient implements UserApi {
         this.userApiHost = environment.readEnv(USER_API_HOST);
         this.userServiceSecretName = environment.readEnv(USER_SERVICE_SECRET_NAME);
         this.userServiceSecretKey = environment.readEnv(USER_SERVICE_SECRET_KEY);
-
     }
 
     @Override
@@ -161,12 +156,12 @@ public class UserApiClient implements UserApi {
             .build();
     }
 
-    private HttpRequest buildCreateUserRequest(URI uri, UserDto user) throws JsonProcessingException, ForbiddenException {
+    private HttpRequest buildCreateUserRequest(URI uri, UserDto user)
+        throws JsonProcessingException, ForbiddenException {
         return HttpRequest.newBuilder()
             .uri(uri)
             .header(AUTHORIZATION, secretsReader.fetchSecret(userServiceSecretName, userServiceSecretKey))
             .POST(BodyPublishers.ofString(objectMapper.writeValueAsString(user)))
             .build();
     }
-
 }

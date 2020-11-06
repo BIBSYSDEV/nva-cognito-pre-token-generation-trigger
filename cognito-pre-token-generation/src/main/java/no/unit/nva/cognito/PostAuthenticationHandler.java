@@ -39,11 +39,9 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
     public static final String COMMA_DELIMITER = ",";
     public static final String FEIDE_PREFIX = "feide:";
     public static final String NVA = "NVA";
-
+    private static final Logger logger = LoggerFactory.getLogger(PostAuthenticationHandler.class);
     private final UserService userService;
     private final CustomerApi customerApi;
-
-    private static final Logger logger = LoggerFactory.getLogger(PostAuthenticationHandler.class);
 
     @JacocoGenerated
     public PostAuthenticationHandler() {
@@ -53,6 +51,28 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
     public PostAuthenticationHandler(UserService userService, CustomerApi customerApi) {
         this.userService = userService;
         this.customerApi = customerApi;
+    }
+
+    @Override
+    public Map<String, Object> handleRequest(Map<String, Object> input, Context context) {
+
+        Event event = parseEventFromInput(input);
+
+        String userPoolId = event.getUserPoolId();
+        String userName = event.getUserName();
+
+        UserAttributes userAttributes = event.getRequest().getUserAttributes();
+
+        Optional<CustomerResponse> customer = mapOrgNumberToCustomer(
+            removeCountryPrefix(userAttributes.getOrgNumber()));
+        Optional<String> customerId = customer.map(CustomerResponse::getCustomerId);
+        Optional<String> cristinId = customer.map(CustomerResponse::getCristinId);
+
+        UserDto user = getUserFromCatalogueOrAddUser(userAttributes, customerId);
+
+        updateUserDetailsInUserPool(userPoolId, userName, userAttributes, user, cristinId);
+
+        return input;
     }
 
     @JacocoGenerated
@@ -85,34 +105,12 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
             new Environment());
     }
 
-    @Override
-    public Map<String, Object> handleRequest(Map<String, Object> input, Context context) {
-
-        Event event = parseEventFromInput(input);
-
-        String userPoolId = event.getUserPoolId();
-        String userName = event.getUserName();
-
-        UserAttributes userAttributes = event.getRequest().getUserAttributes();
-
-        Optional<CustomerResponse> customer = mapOrgNumberToCustomer(
-            removeCountryPrefix(userAttributes.getOrgNumber()));
-        Optional<String> customerId = customer.map(CustomerResponse::getCustomerId);
-        Optional<String> cristinId =  customer.map(CustomerResponse::getCristinId);
-
-        UserDto user = getUserFromCatalogueOrAddUser(userAttributes, customerId);
-
-        updateUserDetailsInUserPool(userPoolId, userName, userAttributes, user, cristinId);
-
-        return input;
-    }
-
     /**
-     * Using ObjectMapper to convert input to Event because we are interested in only some input properties but have
-     * not way of telling Lambda's JSON parser to ignore the rest.
+     * Using ObjectMapper to convert input to Event because we are interested in only some input properties but have not
+     * way of telling Lambda's JSON parser to ignore the rest.
      *
      * @param input event json as map
-     * @return  event
+     * @return event
      */
     private Event parseEventFromInput(Map<String, Object> input) {
         return JsonUtils.objectMapper.convertValue(input, Event.class);
@@ -124,23 +122,21 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
                                              UserDto user,
                                              Optional<String> cristinId) {
 
-
         userService.updateUserAttributes(
             userPoolId,
             userName,
             createUserAttributes(userAttributes, user, cristinId));
     }
 
-    private UserDto getUserFromCatalogueOrAddUser(UserAttributes userAttributes, Optional<String> customerId)
-         {
-             return userService.getOrCreateUser(
-                 userAttributes.getFeideId(),
-                 userAttributes.getGivenName(),
-                 userAttributes.getFamilyName(),
-                 customerId,
-                 userAttributes.getAffiliation()
-             );
-         }
+    private UserDto getUserFromCatalogueOrAddUser(UserAttributes userAttributes, Optional<String> customerId) {
+        return userService.getOrCreateUser(
+            userAttributes.getFeideId(),
+            userAttributes.getGivenName(),
+            userAttributes.getFamilyName(),
+            customerId,
+            userAttributes.getAffiliation()
+        );
+    }
 
     private Optional<CustomerResponse> mapOrgNumberToCustomer(String orgNumber) {
         return customerApi.getCustomer(orgNumber);

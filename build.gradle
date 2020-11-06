@@ -46,9 +46,10 @@ allprojects {
         implementation group: 'org.apache.httpcomponents', name: 'httpclient', version: '4.5.9'
         implementation group: 'org.zalando', name: 'problem', version: '0.24.0'
 
-        implementation 'com.github.BIBSYSDEV.nva-user-access-service:user-access-model:419707f646c311f93fecb3e0c78f82ab1d8edd0f'
-        implementation 'com.github.BIBSYSDEV.nva-user-access-service:user-access-dao-model:419707f646c311f93fecb3e0c78f82ab1d8edd0f'
-
+        implementation 'com.github.BIBSYSDEV.nva-user-access-service:user-access-public-model:309600773f9c787b1f5c5c5d9fb61177840e18a7'
+        implementation 'com.github.BIBSYSDEV.nva-user-access-service:user-access-errors:309600773f9c787b1f5c5c5d9fb61177840e18a7'
+        implementation 'com.github.BIBSYSDEV.nva-user-access-service:user-access-commons:309600773f9c787b1f5c5c5d9fb61177840e18a7'
+        implementation 'com.github.BIBSYSDEV.nva-user-access-service:user-access-internal-model:309600773f9c787b1f5c5c5d9fb61177840e18a7'
 
 
         testImplementation group: 'org.hamcrest', name: 'hamcrest', version: '2.2'

@@ -13,7 +13,8 @@ import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.util.Optional;
 import no.unit.nva.cognito.exception.CreateUserFailedException;
-import no.unit.nva.cognito.model.User;
+
+import no.unit.nva.useraccessmanagement.model.UserDto;
 import nva.commons.exceptions.ForbiddenException;
 import nva.commons.utils.Environment;
 import nva.commons.utils.JacocoGenerated;
@@ -64,7 +65,7 @@ public class UserApiClient implements UserApi {
     }
 
     @Override
-    public Optional<User> getUser(String username) {
+    public Optional<UserDto> getUser(String username) {
         logger.info("Requesting user information for username: " + username);
 
         return fetchUserInformation(username)
@@ -78,7 +79,7 @@ public class UserApiClient implements UserApi {
 
     @Override
     @JacocoGenerated
-    public User createUser(User user) {
+    public UserDto createUser(UserDto user) {
         logger.info("Requesting user creation for username: " + user.getUsername());
         return createNewUser(user)
             .stream()
@@ -89,16 +90,16 @@ public class UserApiClient implements UserApi {
             .orElseThrow(this::logErrorAndReturnException);
     }
 
-    private CreateUserFailedException logErrorAndReturnException(Failure<User> failure) {
+    private CreateUserFailedException logErrorAndReturnException(Failure<UserDto> failure) {
         logger.error(failure.getException().getMessage(), failure.getException());
         return new CreateUserFailedException(CREATE_USER_ERROR_MESSAGE);
     }
 
-    private Try<User> flattenNestedAttempts(Try<User> attempt) {
+    private Try<UserDto> flattenNestedAttempts(Try<UserDto> attempt) {
         return attempt;
     }
 
-    private Optional<HttpResponse<String>> createNewUser(User user) {
+    private Optional<HttpResponse<String>> createNewUser(UserDto user) {
         return attempt(() -> formUri())
             .map(URIBuilder::build)
             .map(uri -> buildCreateUserRequest(uri, user))
@@ -114,7 +115,7 @@ public class UserApiClient implements UserApi {
             .toOptional(failure -> logResponseError(failure));
     }
 
-    private Try<User> tryParsingUser(HttpResponse<String> response) {
+    private Try<UserDto> tryParsingUser(HttpResponse<String> response) {
         return attempt(() -> parseUser(response));
     }
 
@@ -122,7 +123,7 @@ public class UserApiClient implements UserApi {
         return response.statusCode() == HttpStatus.SC_OK;
     }
 
-    private void logErrorParsingUserInformation(Failure<User> failure) {
+    private void logErrorParsingUserInformation(Failure<UserDto> failure) {
         logger.error(ERROR_PARSING_USER_INFORMATION, failure.getException());
     }
 
@@ -130,9 +131,9 @@ public class UserApiClient implements UserApi {
         logger.error(ERROR_FETCHING_USER_INFORMATION, failure.getException());
     }
 
-    private User parseUser(HttpResponse<String> response)
+    private UserDto parseUser(HttpResponse<String> response)
         throws JsonProcessingException {
-        return objectMapper.readValue(response.body(), User.class);
+        return objectMapper.readValue(response.body(), UserDto.class);
     }
 
     private HttpResponse<String> sendHttpRequest(HttpRequest httpRequest) throws IOException, InterruptedException {
@@ -160,7 +161,7 @@ public class UserApiClient implements UserApi {
             .build();
     }
 
-    private HttpRequest buildCreateUserRequest(URI uri, User user) throws JsonProcessingException, ForbiddenException {
+    private HttpRequest buildCreateUserRequest(URI uri, UserDto user) throws JsonProcessingException, ForbiddenException {
         return HttpRequest.newBuilder()
             .uri(uri)
             .header(AUTHORIZATION, secretsReader.fetchSecret(userServiceSecretName, userServiceSecretKey))

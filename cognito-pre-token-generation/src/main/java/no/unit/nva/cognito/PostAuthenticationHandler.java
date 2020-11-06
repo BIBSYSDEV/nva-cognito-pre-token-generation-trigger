@@ -1,7 +1,6 @@
 package no.unit.nva.cognito;
 
 import static no.unit.nva.cognito.util.OrgNumberCleaner.removeCountryPrefix;
-
 import com.amazonaws.services.cognitoidp.AWSCognitoIdentityProviderClient;
 import com.amazonaws.services.cognitoidp.model.AttributeType;
 import com.amazonaws.services.lambda.runtime.Context;
@@ -15,13 +14,13 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import no.unit.nva.cognito.model.CustomerResponse;
 import no.unit.nva.cognito.model.Event;
-import no.unit.nva.cognito.model.Role;
-import no.unit.nva.cognito.model.User;
 import no.unit.nva.cognito.model.UserAttributes;
 import no.unit.nva.cognito.service.CustomerApi;
 import no.unit.nva.cognito.service.CustomerApiClient;
 import no.unit.nva.cognito.service.UserApiClient;
 import no.unit.nva.cognito.service.UserService;
+import no.unit.nva.useraccessmanagement.model.RoleDto;
+import no.unit.nva.useraccessmanagement.model.UserDto;
 import nva.commons.utils.Environment;
 import nva.commons.utils.JacocoGenerated;
 import nva.commons.utils.JsonUtils;
@@ -101,7 +100,7 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
         Optional<String> customerId = customer.map(CustomerResponse::getCustomerId);
         Optional<String> cristinId =  customer.map(CustomerResponse::getCristinId);
 
-        User user = getUserFromCatalogueOrAddUser(userAttributes, customerId);
+        UserDto user = getUserFromCatalogueOrAddUser(userAttributes, customerId);
 
         updateUserDetailsInUserPool(userPoolId, userName, userAttributes, user, cristinId);
 
@@ -122,7 +121,7 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
     private void updateUserDetailsInUserPool(String userPoolId,
                                              String userName,
                                              UserAttributes userAttributes,
-                                             User user,
+                                             UserDto user,
                                              Optional<String> cristinId) {
 
 
@@ -132,22 +131,23 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
             createUserAttributes(userAttributes, user, cristinId));
     }
 
-    private User getUserFromCatalogueOrAddUser(UserAttributes userAttributes, Optional<String> customerId) {
-        return userService.getOrCreateUser(
-            userAttributes.getFeideId(),
-            userAttributes.getGivenName(),
-            userAttributes.getFamilyName(),
-            customerId,
-            userAttributes.getAffiliation()
-        );
-    }
+    private UserDto getUserFromCatalogueOrAddUser(UserAttributes userAttributes, Optional<String> customerId)
+         {
+             return userService.getOrCreateUser(
+                 userAttributes.getFeideId(),
+                 userAttributes.getGivenName(),
+                 userAttributes.getFamilyName(),
+                 customerId,
+                 userAttributes.getAffiliation()
+             );
+         }
 
     private Optional<CustomerResponse> mapOrgNumberToCustomer(String orgNumber) {
         return customerApi.getCustomer(orgNumber);
     }
 
     private List<AttributeType> createUserAttributes(UserAttributes userAttributes,
-                                                     User user,
+                                                     UserDto user,
                                                      Optional<String> cristinId) {
         List<AttributeType> userAttributeTypes = new ArrayList<>();
 
@@ -177,10 +177,10 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
         return attributeType;
     }
 
-    private String toRolesString(List<Role> roles) {
+    private String toRolesString(List<RoleDto> roles) {
         return roles
             .stream()
-            .map(Role::getRolename)
+            .map(RoleDto::getRoleName)
             .collect(Collectors.joining(COMMA_DELIMITER));
     }
 }

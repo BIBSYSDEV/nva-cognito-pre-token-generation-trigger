@@ -8,9 +8,11 @@ import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.http.HttpClient;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import no.unit.nva.cognito.model.CustomerResponse;
 import no.unit.nva.cognito.model.Event;
@@ -35,10 +37,12 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
     public static final String CUSTOM_CUSTOMER_ID = "custom:customerId";
     public static final String CUSTOM_IDENTIFIERS = "custom:identifiers";
     public static final String CUSTOM_CRISTIN_ID = "custom:cristinId";
+    public static final String CUSTOM_APPLICATION_ACCESS_RIGHTS = "custom:accessRights";
 
     public static final String COMMA_DELIMITER = ",";
     public static final String FEIDE_PREFIX = "feide:";
     public static final String NVA = "NVA";
+    public static final String EMPTY_STRING = "";
     private static final Logger logger = LoggerFactory.getLogger(PostAuthenticationHandler.class);
     private final UserService userService;
     private final CustomerApi customerApi;
@@ -122,10 +126,11 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
                                              UserDto user,
                                              Optional<String> cristinId) {
 
+        List<AttributeType> cognitoUserAttributes = createUserAttributes(userAttributes, user, cristinId);
         userService.updateUserAttributes(
             userPoolId,
             userName,
-            createUserAttributes(userAttributes, user, cristinId));
+            cognitoUserAttributes);
     }
 
     private UserDto getUserFromCatalogueOrAddUser(UserAttributes userAttributes, Optional<String> customerId) {
@@ -156,14 +161,27 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
         userAttributeTypes.add(toAttributeType(CUSTOM_APPLICATION, NVA));
         userAttributeTypes.add(toAttributeType(CUSTOM_IDENTIFIERS, FEIDE_PREFIX + userAttributes.getFeideId()));
 
-        String applicationRoles = toRolesString(user.getRoles());
-        logger.info("applicationRoles: " + applicationRoles);
-        userAttributeTypes.add(toAttributeType(
-            CUSTOM_APPLICATION_ROLES, applicationRoles
-            )
-        );
+        String applicationRoles = applicationRolesString(user);
+        userAttributeTypes.add(toAttributeType(CUSTOM_APPLICATION_ROLES, applicationRoles));
+
+        String accessRightsString = accessRightsString(user);
+        userAttributeTypes.add(toAttributeType(CUSTOM_APPLICATION_ACCESS_RIGHTS, accessRightsString));
 
         return userAttributeTypes;
+    }
+
+    private String accessRightsString(UserDto user) {
+        if (!user.getAccessRights().isEmpty()) {
+            return toCsv(user.getAccessRights(), s -> s);
+        } else {
+            return EMPTY_STRING;
+        }
+    }
+
+    private String applicationRolesString(UserDto user) {
+        String applicationRoles = toCsv(user.getRoles(), RoleDto::getRoleName);
+        logger.info("applicationRoles: " + applicationRoles);
+        return applicationRoles;
     }
 
     private AttributeType toAttributeType(String name, String value) {
@@ -173,10 +191,10 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
         return attributeType;
     }
 
-    private String toRolesString(List<RoleDto> roles) {
+    private <T> String toCsv(Collection<T> roles, Function<T, String> stringRepresentation) {
         return roles
             .stream()
-            .map(RoleDto::getRoleName)
+            .map(stringRepresentation)
             .collect(Collectors.joining(COMMA_DELIMITER));
     }
 }

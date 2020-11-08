@@ -110,7 +110,7 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
     }
 
     /**
-     * Using ObjectMapper to convert input to Event because we are interested in only some input properties but have not
+     * Using ObjectMapper to convert input to Event because we are interested in only some input properties but have no
      * way of telling Lambda's JSON parser to ignore the rest.
      *
      * @param input event json as map

@@ -45,7 +45,7 @@ public class UserService {
                                    String givenName,
                                    String familyName,
                                    Optional<String> customerId,
-                                   String affiliation)  {
+                                   String affiliation) {
         return userApi
             .getUser(feideId)
             .orElse(createUser(feideId, givenName, familyName, customerId, affiliation));
@@ -83,7 +83,7 @@ public class UserService {
         } catch (InvalidEntryInternalException e) {
             throw new RuntimeException(e);
         }
-        userApi.createUser(user);
+        user = userApi.createUser(user);
         return user;
     }
 

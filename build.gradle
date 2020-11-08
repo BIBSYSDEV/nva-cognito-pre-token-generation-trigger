@@ -11,7 +11,6 @@ version '1.0-SNAPSHOT'
 
 allprojects {
     apply plugin: 'nebula.lint'
-
     gradleLint.rules = ['unused-dependency']
 
     repositories {
@@ -44,6 +43,11 @@ allprojects {
         implementation group: 'com.amazonaws', name: 'aws-java-sdk-cognitoidp', version: awsSdkVersion
         implementation group: 'org.apache.httpcomponents', name: 'httpclient', version: '4.5.9'
         implementation group: 'org.zalando', name: 'problem', version: '0.24.0'
+
+        implementation 'com.github.BIBSYSDEV.nva-user-access-service:user-access-public-model:0.2.0'
+        implementation 'com.github.BIBSYSDEV.nva-user-access-service:user-access-commons:0.2.0'
+        implementation 'com.github.BIBSYSDEV.nva-user-access-service:user-access-errors:0.2.0'
+
 
         testImplementation group: 'org.hamcrest', name: 'hamcrest', version: '2.2'
         testImplementation group: 'org.mockito', name: 'mockito-core', version: '3.2.4'

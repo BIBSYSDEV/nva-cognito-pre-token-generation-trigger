@@ -1,7 +1,6 @@
 package no.unit.nva.cognito;
 
 import static no.unit.nva.cognito.util.OrgNumberCleaner.removeCountryPrefix;
-
 import com.amazonaws.services.cognitoidp.AWSCognitoIdentityProviderClient;
 import com.amazonaws.services.cognitoidp.model.AttributeType;
 import com.amazonaws.services.lambda.runtime.Context;
@@ -15,13 +14,13 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import no.unit.nva.cognito.model.CustomerResponse;
 import no.unit.nva.cognito.model.Event;
-import no.unit.nva.cognito.model.Role;
-import no.unit.nva.cognito.model.User;
 import no.unit.nva.cognito.model.UserAttributes;
 import no.unit.nva.cognito.service.CustomerApi;
 import no.unit.nva.cognito.service.CustomerApiClient;
 import no.unit.nva.cognito.service.UserApiClient;
 import no.unit.nva.cognito.service.UserService;
+import no.unit.nva.useraccessmanagement.model.RoleDto;
+import no.unit.nva.useraccessmanagement.model.UserDto;
 import nva.commons.utils.Environment;
 import nva.commons.utils.JacocoGenerated;
 import nva.commons.utils.JsonUtils;
@@ -40,11 +39,9 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
     public static final String COMMA_DELIMITER = ",";
     public static final String FEIDE_PREFIX = "feide:";
     public static final String NVA = "NVA";
-
+    private static final Logger logger = LoggerFactory.getLogger(PostAuthenticationHandler.class);
     private final UserService userService;
     private final CustomerApi customerApi;
-
-    private static final Logger logger = LoggerFactory.getLogger(PostAuthenticationHandler.class);
 
     @JacocoGenerated
     public PostAuthenticationHandler() {
@@ -54,6 +51,28 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
     public PostAuthenticationHandler(UserService userService, CustomerApi customerApi) {
         this.userService = userService;
         this.customerApi = customerApi;
+    }
+
+    @Override
+    public Map<String, Object> handleRequest(Map<String, Object> input, Context context) {
+
+        Event event = parseEventFromInput(input);
+
+        String userPoolId = event.getUserPoolId();
+        String userName = event.getUserName();
+
+        UserAttributes userAttributes = event.getRequest().getUserAttributes();
+
+        Optional<CustomerResponse> customer = mapOrgNumberToCustomer(
+            removeCountryPrefix(userAttributes.getOrgNumber()));
+        Optional<String> customerId = customer.map(CustomerResponse::getCustomerId);
+        Optional<String> cristinId = customer.map(CustomerResponse::getCristinId);
+
+        UserDto user = getUserFromCatalogueOrAddUser(userAttributes, customerId);
+
+        updateUserDetailsInUserPool(userPoolId, userName, userAttributes, user, cristinId);
+
+        return input;
     }
 
     @JacocoGenerated
@@ -86,34 +105,12 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
             new Environment());
     }
 
-    @Override
-    public Map<String, Object> handleRequest(Map<String, Object> input, Context context) {
-
-        Event event = parseEventFromInput(input);
-
-        String userPoolId = event.getUserPoolId();
-        String userName = event.getUserName();
-
-        UserAttributes userAttributes = event.getRequest().getUserAttributes();
-
-        Optional<CustomerResponse> customer = mapOrgNumberToCustomer(
-            removeCountryPrefix(userAttributes.getOrgNumber()));
-        Optional<String> customerId = customer.map(CustomerResponse::getCustomerId);
-        Optional<String> cristinId =  customer.map(CustomerResponse::getCristinId);
-
-        User user = getUserFromCatalogueOrAddUser(userAttributes, customerId);
-
-        updateUserDetailsInUserPool(userPoolId, userName, userAttributes, user, cristinId);
-
-        return input;
-    }
-
     /**
-     * Using ObjectMapper to convert input to Event because we are interested in only some input properties but have
-     * not way of telling Lambda's JSON parser to ignore the rest.
+     * Using ObjectMapper to convert input to Event because we are interested in only some input properties but have no
+     * way of telling Lambda's JSON parser to ignore the rest.
      *
      * @param input event json as map
-     * @return  event
+     * @return event
      */
     private Event parseEventFromInput(Map<String, Object> input) {
         return JsonUtils.objectMapper.convertValue(input, Event.class);
@@ -122,9 +119,8 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
     private void updateUserDetailsInUserPool(String userPoolId,
                                              String userName,
                                              UserAttributes userAttributes,
-                                             User user,
+                                             UserDto user,
                                              Optional<String> cristinId) {
-
 
         userService.updateUserAttributes(
             userPoolId,
@@ -132,7 +128,7 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
             createUserAttributes(userAttributes, user, cristinId));
     }
 
-    private User getUserFromCatalogueOrAddUser(UserAttributes userAttributes, Optional<String> customerId) {
+    private UserDto getUserFromCatalogueOrAddUser(UserAttributes userAttributes, Optional<String> customerId) {
         return userService.getOrCreateUser(
             userAttributes.getFeideId(),
             userAttributes.getGivenName(),
@@ -147,7 +143,7 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
     }
 
     private List<AttributeType> createUserAttributes(UserAttributes userAttributes,
-                                                     User user,
+                                                     UserDto user,
                                                      Optional<String> cristinId) {
         List<AttributeType> userAttributeTypes = new ArrayList<>();
 
@@ -177,10 +173,10 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
         return attributeType;
     }
 
-    private String toRolesString(List<Role> roles) {
+    private String toRolesString(List<RoleDto> roles) {
         return roles
             .stream()
-            .map(Role::getRolename)
+            .map(RoleDto::getRoleName)
             .collect(Collectors.joining(COMMA_DELIMITER));
     }
 }

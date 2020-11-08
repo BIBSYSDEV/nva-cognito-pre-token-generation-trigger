@@ -1,11 +1,11 @@
 package no.unit.nva.cognito.service;
 
 import java.util.Optional;
-import no.unit.nva.cognito.model.User;
+import no.unit.nva.useraccessmanagement.model.UserDto;
 
 public interface UserApi {
 
-    Optional<User> getUser(String username);
+    Optional<UserDto> getUser(String username);
 
-    User createUser(User user);
+    UserDto createUser(UserDto user);
 }

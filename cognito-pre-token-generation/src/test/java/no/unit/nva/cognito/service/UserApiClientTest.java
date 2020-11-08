@@ -18,7 +18,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
@@ -26,8 +25,9 @@ import java.net.http.HttpClient;
 import java.net.http.HttpResponse;
 import java.util.Optional;
 import no.unit.nva.cognito.exception.CreateUserFailedException;
-import no.unit.nva.cognito.model.Role;
-import no.unit.nva.cognito.model.User;
+import no.unit.nva.useraccessmanagement.exceptions.InvalidEntryInternalException;
+import no.unit.nva.useraccessmanagement.model.RoleDto;
+import no.unit.nva.useraccessmanagement.model.UserDto;
 import nva.commons.exceptions.ForbiddenException;
 import nva.commons.utils.Environment;
 import nva.commons.utils.aws.SecretsReader;
@@ -80,7 +80,7 @@ public class UserApiClientTest {
         when(httpResponse.statusCode()).thenReturn(SC_OK);
         when(httpClient.send(any(), any())).thenReturn(httpResponse);
 
-        Optional<User> user = userApiClient.getUser(SAMPLE_USERNAME);
+        Optional<UserDto> user = userApiClient.getUser(SAMPLE_USERNAME);
 
         Assertions.assertTrue(user.isPresent());
     }
@@ -92,8 +92,7 @@ public class UserApiClientTest {
         when(httpResponse.statusCode()).thenReturn(SC_OK);
         when(httpClient.send(any(), any())).thenReturn(httpResponse);
 
-        Optional<User> user = userApiClient.getUser(SAMPLE_USERNAME);
-
+        Optional<UserDto> user = userApiClient.getUser(SAMPLE_USERNAME);
 
         String messages = appender.getMessages();
         assertThat(messages, containsString(ERROR_PARSING_USER_INFORMATION));
@@ -106,7 +105,7 @@ public class UserApiClientTest {
         when(httpResponse.statusCode()).thenReturn(SC_INTERNAL_SERVER_ERROR);
         when(httpClient.send(any(), any())).thenReturn(httpResponse);
 
-        Optional<User> user = userApiClient.getUser(SAMPLE_USERNAME);
+        Optional<UserDto> user = userApiClient.getUser(SAMPLE_USERNAME);
 
         String messages = appender.getMessages();
         assertThat(messages, containsString(ERROR_PARSING_USER_INFORMATION));
@@ -118,7 +117,7 @@ public class UserApiClientTest {
         final TestAppender appender = LogUtils.getTestingAppender(UserApiClient.class);
         when(httpClient.send(any(), any())).thenThrow(IOException.class);
 
-        Optional<User> user = userApiClient.getUser(SAMPLE_USERNAME);
+        Optional<UserDto> user = userApiClient.getUser(SAMPLE_USERNAME);
 
         String messages = appender.getMessages();
         assertThat(messages, containsString(ERROR_PARSING_USER_INFORMATION));
@@ -126,29 +125,27 @@ public class UserApiClientTest {
     }
 
     @Test
-    public void createUserReturnsCreatedUserOnSuccess() throws IOException, InterruptedException, ForbiddenException {
+    public void createUserReturnsCreatedUserOnSuccess()
+        throws IOException, InterruptedException, ForbiddenException, InvalidEntryInternalException {
         when(httpResponse.body()).thenReturn(getValidJsonUser());
         when(httpResponse.statusCode()).thenReturn(SC_OK);
         when(httpClient.send(any(), any())).thenReturn(httpResponse);
         prepareMocksWithSecret();
 
-        User requestUser = createUser();
+        UserDto requestUser = createUser();
 
-        User responseUser = userApiClient.createUser(requestUser);
+        UserDto responseUser = userApiClient.createUser(requestUser);
 
         Assertions.assertNotNull(responseUser);
     }
 
-    private void prepareMocksWithSecret() throws ForbiddenException {
-        when(secretsReader.fetchSecret(anyString(), anyString())).thenReturn(THE_API_KEY);
-    }
-
     @Test
-    public void createUserReturnsErrorOnFailure() throws IOException, InterruptedException {
+    public void createUserReturnsErrorOnFailure()
+        throws IOException, InterruptedException, InvalidEntryInternalException {
         final TestAppender appender = LogUtils.getTestingAppender(UserApiClient.class);
         when(httpClient.send(any(), any())).thenThrow(IOException.class);
 
-        User requestUser = createUser();
+        UserDto requestUser = createUser();
 
         Exception exception = assertThrows(CreateUserFailedException.class,
             () -> userApiClient.createUser(requestUser));
@@ -158,17 +155,21 @@ public class UserApiClientTest {
         assertThat(messages, containsString(ERROR_FETCHING_USER_INFORMATION));
     }
 
-    public String getValidJsonUser() throws JsonProcessingException {
+    public String getValidJsonUser() throws JsonProcessingException, InvalidEntryInternalException {
         return objectMapper.writeValueAsString(createUser());
     }
 
-    private User createUser() {
-        return new User(
-            SAMPLE_USERNAME,
-            SAMPLE_GIVEN_NAME,
-            SAMPLE_FAMILY_NAME,
-            SAMPLE_INSTITUTION_ID,
-            singletonList(new Role(CREATOR))
-        );
+    private void prepareMocksWithSecret() throws ForbiddenException {
+        when(secretsReader.fetchSecret(anyString(), anyString())).thenReturn(THE_API_KEY);
+    }
+
+    private UserDto createUser() throws InvalidEntryInternalException {
+        return UserDto.newBuilder()
+            .withRoles(singletonList(RoleDto.newBuilder().withName(CREATOR).build()))
+            .withUsername(SAMPLE_USERNAME)
+            .withInstitution(SAMPLE_INSTITUTION_ID)
+            .withGivenName(SAMPLE_GIVEN_NAME)
+            .withFamilyName(SAMPLE_FAMILY_NAME)
+            .build();
     }
 }

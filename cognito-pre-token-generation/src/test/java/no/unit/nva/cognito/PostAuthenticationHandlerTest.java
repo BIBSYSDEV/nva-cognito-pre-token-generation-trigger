@@ -5,6 +5,7 @@ import static no.unit.nva.cognito.service.UserApiMock.SAMPLE_ACCESS_RIGHTS;
 import static no.unit.nva.cognito.service.UserApiMock.SECOND_ACCESS_RIGHT;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.in;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -19,6 +20,12 @@ import com.amazonaws.services.cognitoidp.model.AdminUpdateUserAttributesRequest;
 import com.amazonaws.services.cognitoidp.model.AdminUpdateUserAttributesResult;
 import com.amazonaws.services.cognitoidp.model.AttributeType;
 import com.amazonaws.services.lambda.runtime.Context;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JavaType;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -38,6 +45,7 @@ import no.unit.nva.cognito.service.UserService;
 import no.unit.nva.useraccessmanagement.exceptions.InvalidEntryInternalException;
 import no.unit.nva.useraccessmanagement.model.RoleDto;
 import no.unit.nva.useraccessmanagement.model.UserDto;
+import nva.commons.utils.IoUtils;
 import nva.commons.utils.JsonUtils;
 import nva.commons.utils.SingletonCollector;
 import org.junit.jupiter.api.BeforeEach;
@@ -85,6 +93,17 @@ public class PostAuthenticationHandlerTest {
         attributeTypesBuffer.set(null);
         userService = new UserService(userApi, awsCognitoIdentityProvider);
         handler = new PostAuthenticationHandler(userService, customerApi);
+    }
+
+    @Test
+    public void foo() throws JsonProcessingException {
+        PostAuthenticationHandler handler = new PostAuthenticationHandler();
+        String input = IoUtils.stringFromResources(Path.of("event.json"));
+        JavaType javaType = JsonUtils.objectMapper.getTypeFactory()
+            .constructParametricType(Map.class, String.class, Object.class);
+        Map<String, Object> event = JsonUtils.objectMapper.readValue(input, javaType);
+
+        Map<String, Object> outputEvent = handler.handleRequest(event, mockContext);
     }
 
     @Test

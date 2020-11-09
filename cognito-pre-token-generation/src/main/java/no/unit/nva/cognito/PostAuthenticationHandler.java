@@ -173,8 +173,8 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
         String applicationRoles = applicationRolesString(user);
         userAttributeTypes.add(toAttributeType(CUSTOM_APPLICATION_ROLES, applicationRoles));
 
-        String accessRightsString = accessRightsString(user);
-        userAttributeTypes.add(toAttributeType(CUSTOM_APPLICATION_ACCESS_RIGHTS, accessRightsString));
+        //        String accessRightsString = accessRightsString(user);
+        //        userAttributeTypes.add(toAttributeType(CUSTOM_APPLICATION_ACCESS_RIGHTS, accessRightsString));
 
         return userAttributeTypes;
     }

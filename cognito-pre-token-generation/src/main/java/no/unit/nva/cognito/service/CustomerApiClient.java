@@ -36,8 +36,8 @@ public class CustomerApiClient implements CustomerApi {
                              Environment environment) {
         this.httpClient = httpClient;
         this.objectMapper = objectMapper;
-        this.customerApiScheme = environment.readEnv(CUSTOMER_API_SCHEME);
-        this.customerApiHost = environment.readEnv(CUSTOMER_API_HOST);
+        this.customerApiScheme = environment.readEnvOpt(CUSTOMER_API_SCHEME).orElse("https");
+        this.customerApiHost = environment.readEnvOpt(CUSTOMER_API_HOST).orElse("api.dev.nva.aws.unit.no");
     }
 
     @Override

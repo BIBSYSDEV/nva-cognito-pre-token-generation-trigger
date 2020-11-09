@@ -53,10 +53,10 @@ public class UserApiClient implements UserApi {
         this.httpClient = httpClient;
         this.objectMapper = objectMapper;
         this.secretsReader = secretsReader;
-        this.userApiScheme = environment.readEnv(USER_API_SCHEME);
-        this.userApiHost = environment.readEnv(USER_API_HOST);
-        this.userServiceSecretName = environment.readEnv(USER_SERVICE_SECRET_NAME);
-        this.userServiceSecretKey = environment.readEnv(USER_SERVICE_SECRET_KEY);
+        this.userApiScheme = environment.readEnvOpt(USER_API_SCHEME).orElse("https");
+        this.userApiHost = environment.readEnvOpt(USER_API_HOST).orElse("api.dev.nva.aws.unit.no");
+        this.userServiceSecretName = environment.readEnvOpt(USER_SERVICE_SECRET_NAME).orElse("UserCatalogueApiKey");
+        this.userServiceSecretKey = environment.readEnvOpt(USER_SERVICE_SECRET_KEY).orElse("ApiKey");
     }
 
     @Override
@@ -103,15 +103,17 @@ public class UserApiClient implements UserApi {
     }
 
     private Optional<HttpResponse<String>> fetchUserInformation(String username) {
-        return attempt(() -> formUri(username))
+        Optional<HttpResponse<String>> response = attempt(() -> formUri(username))
             .map(URIBuilder::build)
             .map(this::buildGetUserRequest)
             .map(this::sendHttpRequest)
             .toOptional(failure -> logResponseError(failure));
+        return response;
     }
 
     private Try<UserDto> tryParsingUser(HttpResponse<String> response) {
-        return attempt(() -> parseUser(response));
+        Try<UserDto> user = attempt(() -> parseUser(response));
+        return user;
     }
 
     private boolean responseIsSuccessful(HttpResponse<String> response) {

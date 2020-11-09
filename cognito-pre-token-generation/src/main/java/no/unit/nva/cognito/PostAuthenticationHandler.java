@@ -43,7 +43,6 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
     public static final String COMMA_DELIMITER = ",";
     public static final String FEIDE_PREFIX = "feide:";
     public static final String NVA = "NVA";
-    public static final String EMPTY_STRING = "";
     private static final Logger logger = LoggerFactory.getLogger(PostAuthenticationHandler.class);
     private final UserService userService;
     private final CustomerApi customerApi;
@@ -173,18 +172,7 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
         String applicationRoles = applicationRolesString(user);
         userAttributeTypes.add(toAttributeType(CUSTOM_APPLICATION_ROLES, applicationRoles));
 
-        //        String accessRightsString = accessRightsString(user);
-        //        userAttributeTypes.add(toAttributeType(CUSTOM_APPLICATION_ACCESS_RIGHTS, accessRightsString));
-
         return userAttributeTypes;
-    }
-
-    private String accessRightsString(UserDto user) {
-        if (!user.getAccessRights().isEmpty()) {
-            return toCsv(user.getAccessRights(), s -> s);
-        } else {
-            return EMPTY_STRING;
-        }
     }
 
     private String applicationRolesString(UserDto user) {

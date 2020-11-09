@@ -1,13 +1,6 @@
 package no.unit.nva.cognito;
 
-import static no.unit.nva.cognito.service.UserApiMock.FIRST_ACCESS_RIGHT;
 import static no.unit.nva.cognito.service.UserApiMock.SAMPLE_ACCESS_RIGHTS;
-import static no.unit.nva.cognito.service.UserApiMock.SECOND_ACCESS_RIGHT;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.in;
-import static org.hamcrest.core.Is.is;
-import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -20,12 +13,6 @@ import com.amazonaws.services.cognitoidp.model.AdminUpdateUserAttributesRequest;
 import com.amazonaws.services.cognitoidp.model.AdminUpdateUserAttributesResult;
 import com.amazonaws.services.cognitoidp.model.AttributeType;
 import com.amazonaws.services.lambda.runtime.Context;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JavaType;
-import java.io.ByteArrayOutputStream;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -45,7 +32,6 @@ import no.unit.nva.cognito.service.UserService;
 import no.unit.nva.useraccessmanagement.exceptions.InvalidEntryInternalException;
 import no.unit.nva.useraccessmanagement.model.RoleDto;
 import no.unit.nva.useraccessmanagement.model.UserDto;
-import nva.commons.utils.IoUtils;
 import nva.commons.utils.JsonUtils;
 import nva.commons.utils.SingletonCollector;
 import org.junit.jupiter.api.BeforeEach;
@@ -96,17 +82,6 @@ public class PostAuthenticationHandlerTest {
     }
 
     @Test
-    public void foo() throws JsonProcessingException {
-        PostAuthenticationHandler handler = new PostAuthenticationHandler();
-        String input = IoUtils.stringFromResources(Path.of("event.json"));
-        JavaType javaType = JsonUtils.objectMapper.getTypeFactory()
-            .constructParametricType(Map.class, String.class, Object.class);
-        Map<String, Object> event = JsonUtils.objectMapper.readValue(input, javaType);
-
-        Map<String, Object> outputEvent = handler.handleRequest(event, mockContext);
-    }
-
-    @Test
     public void handleRequestUsesExistingUserWhenUserIsFound() throws InvalidEntryInternalException {
         prepareMocksWithExistingCustomer();
         prepareMocksWithExistingUser();
@@ -151,33 +126,6 @@ public class PostAuthenticationHandlerTest {
         UserDto createdUser = getUserFromMock();
         assertEquals(expected, createdUser);
         assertEquals(requestEvent, responseEvent);
-    }
-
-    @Test
-    public void handleRequestAddsAccessRightsAttributesToUserPoolAttributesForUserWithRole()
-        throws InvalidEntryInternalException {
-        prepareMocksWithExistingUser();
-        Map<String, Object> requestEvent = createRequestEvent();
-        handler.handleRequest(requestEvent, mockContext);
-        verifyNumberOfAttributeUpdatesInCognito(1);
-
-        String accessRight = extractAccessRightsFromUserAttributes();
-
-        assertThat(accessRight, containsString(FIRST_ACCESS_RIGHT));
-        assertThat(accessRight, containsString(SECOND_ACCESS_RIGHT));
-    }
-
-    @Test
-    public void handleRequestAddsAccessRightsAsCsvWhenAccessRightsAreMoreThanOne()
-        throws InvalidEntryInternalException {
-        prepareMocksWithExistingUser();
-        Map<String, Object> requestEvent = createRequestEvent();
-        handler.handleRequest(requestEvent, mockContext);
-        verifyNumberOfAttributeUpdatesInCognito(1);
-
-        String accessRightsString = extractAccessRightsFromUserAttributes();
-        Set<String> accessRights = toSet(accessRightsString);
-        assertThat(accessRights, is((equalTo(SAMPLE_ACCESS_RIGHTS))));
     }
 
     @Test

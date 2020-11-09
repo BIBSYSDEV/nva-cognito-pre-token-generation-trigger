@@ -6,7 +6,6 @@ import com.amazonaws.services.cognitoidp.model.AttributeType;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.http.HttpClient;
 import java.util.ArrayList;
@@ -67,12 +66,10 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
             String inputJson = JsonUtils.objectMapper.writeValueAsString(input);
             logger.info("Event:" + inputJson);
             String eventJson = JsonUtils.objectMapper.writeValueAsString(event);
-            logger.info("Parsed event: "+ eventJson);
+            logger.info("Parsed event: " + eventJson);
         } catch (JsonProcessingException e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
-
-
 
         String userPoolId = event.getUserPoolId();
         String userName = event.getUserName();

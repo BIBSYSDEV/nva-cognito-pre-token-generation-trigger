@@ -12,7 +12,6 @@ import java.net.http.HttpRequest.BodyPublishers;
 import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.util.Optional;
-import java.util.concurrent.Callable;
 import no.unit.nva.cognito.exception.BadGatewayException;
 import no.unit.nva.useraccessmanagement.model.UserDto;
 import nva.commons.exceptions.ForbiddenException;

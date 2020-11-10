@@ -1,7 +1,8 @@
 package no.unit.nva.cognito.service;
 
 import static java.util.Collections.singletonList;
-import static no.unit.nva.cognito.service.UserApiClient.ERROR_FETCHING_USER_INFORMATION;
+import static no.unit.nva.cognito.service.UserApiClient.COULD_NOT_CREATE_USER_ERROR_MESSAGE;
+import static no.unit.nva.cognito.service.UserApiClient.COULD_NOT_FETCH_USER_ERROR_MESSAGE;
 import static no.unit.nva.cognito.service.UserApiClient.ERROR_PARSING_USER_INFORMATION;
 import static no.unit.nva.cognito.service.UserApiClient.USER_API_HOST;
 import static no.unit.nva.cognito.service.UserApiClient.USER_API_SCHEME;
@@ -13,7 +14,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -24,7 +24,7 @@ import java.io.IOException;
 import java.net.http.HttpClient;
 import java.net.http.HttpResponse;
 import java.util.Optional;
-import no.unit.nva.cognito.exception.CreateUserFailedException;
+import no.unit.nva.cognito.exception.BadGatewayException;
 import no.unit.nva.useraccessmanagement.exceptions.InvalidEntryInternalException;
 import no.unit.nva.useraccessmanagement.model.RoleDto;
 import no.unit.nva.useraccessmanagement.model.UserDto;
@@ -36,6 +36,7 @@ import nva.commons.utils.log.TestAppender;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
 
 @SuppressWarnings("unchecked")
 public class UserApiClientTest {
@@ -86,47 +87,48 @@ public class UserApiClientTest {
     }
 
     @Test
-    public void getUserReturnsEmptyOptionalOnInvalidJsonResponse() throws IOException, InterruptedException {
+    public void getUserReturnsEmptyOptionalOnInvalidJsonResponse()
+        throws IOException, InterruptedException, BadGatewayException {
         final TestAppender appender = LogUtils.getTestingAppender(UserApiClient.class);
         when(httpResponse.body()).thenReturn(GARBAGE_JSON);
         when(httpResponse.statusCode()).thenReturn(SC_OK);
         when(httpClient.send(any(), any())).thenReturn(httpResponse);
 
-        Optional<UserDto> user = userApiClient.getUser(SAMPLE_USERNAME);
+        Executable action = () -> userApiClient.getUser(SAMPLE_USERNAME);
 
+        assertThrows(IllegalStateException.class, action);
         String messages = appender.getMessages();
         assertThat(messages, containsString(ERROR_PARSING_USER_INFORMATION));
-        assertTrue(user.isEmpty());
     }
 
     @Test
-    public void getUserReturnsEmptyOptionalOnInvalidHttpResponse() throws IOException, InterruptedException {
-        final TestAppender appender = LogUtils.getTestingAppender(UserApiClient.class);
+    public void getUserReturnsEmptyOptionalOnInvalidHttpResponse()
+        throws IOException, InterruptedException, BadGatewayException {
+        final TestAppender logAppendeer = LogUtils.getTestingAppender(UserApiClient.class);
         when(httpResponse.statusCode()).thenReturn(SC_INTERNAL_SERVER_ERROR);
         when(httpClient.send(any(), any())).thenReturn(httpResponse);
 
-        Optional<UserDto> user = userApiClient.getUser(SAMPLE_USERNAME);
+        Executable action = () -> userApiClient.getUser(SAMPLE_USERNAME);
 
-        String messages = appender.getMessages();
-        assertThat(messages, containsString(ERROR_PARSING_USER_INFORMATION));
-        assertTrue(user.isEmpty());
+        assertThrows(BadGatewayException.class, action);
+        assertThat(logAppendeer.getMessages(), containsString(COULD_NOT_FETCH_USER_ERROR_MESSAGE));
     }
 
     @Test
-    public void getUserReturnsEmptyOptionalOnHttpError() throws IOException, InterruptedException {
+    public void getUserReturnsEmptyOptionalOnHttpError() throws IOException, InterruptedException, BadGatewayException {
         final TestAppender appender = LogUtils.getTestingAppender(UserApiClient.class);
         when(httpClient.send(any(), any())).thenThrow(IOException.class);
 
-        Optional<UserDto> user = userApiClient.getUser(SAMPLE_USERNAME);
-
+        Executable action = () -> userApiClient.getUser(SAMPLE_USERNAME);
+        assertThrows(BadGatewayException.class, action);
         String messages = appender.getMessages();
-        assertThat(messages, containsString(ERROR_PARSING_USER_INFORMATION));
-        assertTrue(user.isEmpty());
+        assertThat(messages, containsString(COULD_NOT_FETCH_USER_ERROR_MESSAGE));
     }
 
     @Test
     public void createUserReturnsCreatedUserOnSuccess()
-        throws IOException, InterruptedException, ForbiddenException, InvalidEntryInternalException {
+        throws IOException, InterruptedException, ForbiddenException, InvalidEntryInternalException,
+               BadGatewayException {
         when(httpResponse.body()).thenReturn(getValidJsonUser());
         when(httpResponse.statusCode()).thenReturn(SC_OK);
         when(httpClient.send(any(), any())).thenReturn(httpResponse);
@@ -147,12 +149,12 @@ public class UserApiClientTest {
 
         UserDto requestUser = createUser();
 
-        Exception exception = assertThrows(CreateUserFailedException.class,
+        Exception exception = assertThrows(BadGatewayException.class,
             () -> userApiClient.createUser(requestUser));
 
-        assertEquals(UserApiClient.CREATE_USER_ERROR_MESSAGE, exception.getMessage());
+        assertEquals(COULD_NOT_CREATE_USER_ERROR_MESSAGE, exception.getMessage());
         String messages = appender.getMessages();
-        assertThat(messages, containsString(ERROR_FETCHING_USER_INFORMATION));
+        assertThat(messages, containsString(COULD_NOT_CREATE_USER_ERROR_MESSAGE));
     }
 
     public String getValidJsonUser() throws JsonProcessingException, InvalidEntryInternalException {

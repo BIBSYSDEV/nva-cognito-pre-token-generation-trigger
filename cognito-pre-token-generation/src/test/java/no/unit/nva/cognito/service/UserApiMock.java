@@ -1,12 +1,12 @@
 package no.unit.nva.cognito.service;
 
-import static no.unit.nva.cognito.service.UserApiClient.CREATE_USER_ERROR_MESSAGE;
+import static no.unit.nva.cognito.service.UserApiClient.COULD_NOT_CREATE_USER_ERROR_MESSAGE;
 import static nva.commons.utils.attempt.Try.attempt;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import no.unit.nva.cognito.exception.CreateUserFailedException;
+import no.unit.nva.cognito.exception.BadGatewayException;
 import no.unit.nva.useraccessmanagement.model.RoleDto;
 import no.unit.nva.useraccessmanagement.model.UserDto;
 
@@ -30,7 +30,7 @@ public class UserApiMock implements UserApi {
         if (user != null) {
             return user;
         } else {
-            throw new CreateUserFailedException(CREATE_USER_ERROR_MESSAGE);
+            throw new BadGatewayException(COULD_NOT_CREATE_USER_ERROR_MESSAGE);
         }
     }
 

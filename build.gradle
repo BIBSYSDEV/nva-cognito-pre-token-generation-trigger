@@ -32,7 +32,7 @@ allprojects {
     def awsSdkVersion = '1.11.807'
 
     dependencies {
-        implementation group: 'com.github.BIBSYSDEV', name: 'nva-commons', version: '0.5.1'
+        implementation group: 'com.github.BIBSYSDEV', name: 'nva-commons', version: '61b5290701cf26978'
         implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: jacksonVersion
         implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: jacksonVersion
         implementation group: 'com.fasterxml.jackson.core', name: 'jackson-annotations', version: jacksonVersion

@@ -7,5 +7,5 @@ public interface UserApi {
 
     Optional<UserDto> getUser(String username);
 
-    UserDto createUser(UserDto user);
+    UserDto createUser(UserDto user) ;
 }

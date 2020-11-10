@@ -4,6 +4,7 @@ import static nva.commons.utils.attempt.Try.attempt;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
+import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -11,14 +12,13 @@ import java.net.http.HttpRequest.BodyPublishers;
 import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.util.Optional;
-import no.unit.nva.cognito.exception.CreateUserFailedException;
+import java.util.concurrent.Callable;
+import no.unit.nva.cognito.exception.BadGatewayException;
 import no.unit.nva.useraccessmanagement.model.UserDto;
 import nva.commons.exceptions.ForbiddenException;
 import nva.commons.utils.Environment;
 import nva.commons.utils.JacocoGenerated;
-import nva.commons.utils.SingletonCollector;
 import nva.commons.utils.attempt.Failure;
-import nva.commons.utils.attempt.Try;
 import nva.commons.utils.aws.SecretsReader;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.utils.URIBuilder;
@@ -31,12 +31,14 @@ public class UserApiClient implements UserApi {
     public static final String USER_API_SCHEME = "USER_API_SCHEME";
     public static final String USER_API_HOST = "USER_API_HOST";
     public static final String ERROR_PARSING_USER_INFORMATION = "Error parsing user information";
-    public static final String ERROR_FETCHING_USER_INFORMATION = "Error fetching user information";
-    public static final String CREATE_USER_ERROR_MESSAGE = "Error creating user in user catalogue";
     public static final String USER_SERVICE_SECRET_NAME = "USER_SERVICE_SECRET_NAME";
     public static final String USER_SERVICE_SECRET_KEY = "USER_SERVICE_SECRET_KEY";
     public static final String AUTHORIZATION = "Authorization";
     public static final String DELIMITER = "/";
+    public static final String USER_CANNOT_BE_PARSED_ERROR = "User cannot be parsed";
+    public static final String COULD_NOT_FETCH_USER_ERROR_MESSAGE = "Could not fetch user: ";
+    public static final String COULD_NOT_CREATE_USER_ERROR_MESSAGE = "Could not crate user: ";
+    public static final String ERROR_MESSAGE_TEMPLATE = "%s\nStatus Code:%d\n:Response message:%s";
     private static final Logger logger = LoggerFactory.getLogger(UserApiClient.class);
     private final ObjectMapper objectMapper;
     private final HttpClient httpClient;
@@ -53,77 +55,85 @@ public class UserApiClient implements UserApi {
         this.httpClient = httpClient;
         this.objectMapper = objectMapper;
         this.secretsReader = secretsReader;
-        this.userApiScheme = environment.readEnv(USER_API_SCHEME);
-        this.userApiHost = environment.readEnv(USER_API_HOST);
-        this.userServiceSecretName = environment.readEnv(USER_SERVICE_SECRET_NAME);
-        this.userServiceSecretKey = environment.readEnv(USER_SERVICE_SECRET_KEY);
+        this.userApiScheme = environment.readEnvOpt(USER_API_SCHEME).orElse("https");
+        this.userApiHost = environment.readEnvOpt(USER_API_HOST).orElse("api.dev.nva.aws.unit.no");
+        this.userServiceSecretName = environment.readEnvOpt(USER_SERVICE_SECRET_NAME).orElse("UserCatalogueApiKey");
+        this.userServiceSecretKey = environment.readEnvOpt(USER_SERVICE_SECRET_KEY).orElse("ApiKey");
     }
 
     @Override
     public Optional<UserDto> getUser(String username) {
         logger.info("Requesting user information for username: " + username);
-
-        return fetchUserInformation(username)
-            .stream()
-            .filter(this::responseIsSuccessful)
-            .map(this::tryParsingUser)
-            .collect(SingletonCollector.tryCollect())
-            .flatMap(this::flattenNestedAttempts)
-            .toOptional(this::logErrorParsingUserInformation);
+        HttpResponse<String> response = fetchUserInformation(username);
+        if (responseIsSuccessful(response)) {
+            return Optional.of(tryParsingUser(response));
+        } else if (responseIsNotFound(response)) {
+            return Optional.empty();
+        } else {
+            throw unexpectedException(response, COULD_NOT_FETCH_USER_ERROR_MESSAGE);
+        }
     }
 
     @Override
     @JacocoGenerated
     public UserDto createUser(UserDto user) {
         logger.info("Requesting user creation for username: " + user.getUsername());
-        return createNewUser(user)
-            .stream()
-            .filter(this::responseIsSuccessful)
-            .map(this::tryParsingUser)
-            .collect(SingletonCollector.tryCollect())
-            .flatMap(this::flattenNestedAttempts)
-            .orElseThrow(this::logErrorAndReturnException);
+
+        HttpResponse<String> createResponse = createNewUser(user);
+        if (responseIsSuccessful(createResponse)) {
+            return tryParsingUser(createResponse);
+        } else {
+            throw unexpectedException(createResponse, COULD_NOT_CREATE_USER_ERROR_MESSAGE);
+        }
     }
 
-    private CreateUserFailedException logErrorAndReturnException(Failure<UserDto> failure) {
-        logger.error(failure.getException().getMessage(), failure.getException());
-        return new CreateUserFailedException(CREATE_USER_ERROR_MESSAGE);
+    private RuntimeException unexpectedException(HttpResponse<String> response, String errorPrefix) {
+        String errorMessage = formatErrorMessageForFailedResponse(response, errorPrefix);
+        logger.error(errorMessage);
+        return new BadGatewayException(errorMessage);
     }
 
-    private Try<UserDto> flattenNestedAttempts(Try<UserDto> attempt) {
-        return attempt;
+    private String formatErrorMessageForFailedResponse(HttpResponse<String> response, String errorPrefix) {
+        return String.format(ERROR_MESSAGE_TEMPLATE, errorPrefix, response.statusCode(), response.body());
     }
 
-    private Optional<HttpResponse<String>> createNewUser(UserDto user) {
-        return attempt(() -> formUri())
+    private boolean responseIsNotFound(HttpResponse<String> response) {
+        return response.statusCode() == HttpURLConnection.HTTP_NOT_FOUND;
+    }
+
+    private HttpResponse<String> createNewUser(UserDto user) {
+        return attempt((Callable<URIBuilder>) this::formUri)
             .map(URIBuilder::build)
             .map(uri -> buildCreateUserRequest(uri, user))
             .map(this::sendHttpRequest)
-            .toOptional(failure -> logResponseError(failure));
+            .orElseThrow(fail -> logResponseError(fail, COULD_NOT_CREATE_USER_ERROR_MESSAGE));
     }
 
-    private Optional<HttpResponse<String>> fetchUserInformation(String username) {
+    private HttpResponse<String> fetchUserInformation(String username) {
         return attempt(() -> formUri(username))
             .map(URIBuilder::build)
             .map(this::buildGetUserRequest)
             .map(this::sendHttpRequest)
-            .toOptional(failure -> logResponseError(failure));
+            .orElseThrow(fail -> logResponseError(fail, COULD_NOT_FETCH_USER_ERROR_MESSAGE));
     }
 
-    private Try<UserDto> tryParsingUser(HttpResponse<String> response) {
-        return attempt(() -> parseUser(response));
+    private UserDto tryParsingUser(HttpResponse<String> response) {
+        return attempt(() -> parseUser(response))
+            .orElseThrow(this::logErrorParsingUserInformation);
     }
 
     private boolean responseIsSuccessful(HttpResponse<String> response) {
         return response.statusCode() == HttpStatus.SC_OK;
     }
 
-    private void logErrorParsingUserInformation(Failure<UserDto> failure) {
+    private IllegalStateException logErrorParsingUserInformation(Failure<UserDto> failure) {
         logger.error(ERROR_PARSING_USER_INFORMATION, failure.getException());
+        return new IllegalStateException(USER_CANNOT_BE_PARSED_ERROR);
     }
 
-    private void logResponseError(Failure<HttpResponse<String>> failure) {
-        logger.error(ERROR_FETCHING_USER_INFORMATION, failure.getException());
+    private BadGatewayException logResponseError(Failure<HttpResponse<String>> failure, String errorMessage) {
+        logger.error(errorMessage, failure.getException());
+        return new BadGatewayException(errorMessage, failure.getException());
     }
 
     private UserDto parseUser(HttpResponse<String> response)

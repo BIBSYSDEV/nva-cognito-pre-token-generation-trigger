@@ -46,9 +46,8 @@ public class UserService {
                                    String familyName,
                                    Optional<String> customerId,
                                    String affiliation) {
-        return userApi
-            .getUser(feideId)
-            .orElseGet(() -> createUser(feideId, givenName, familyName, customerId, affiliation));
+        Optional<UserDto> existingUser = userApi.getUser(feideId);
+        return existingUser.orElseGet(() -> createUser(feideId, givenName, familyName, customerId, affiliation));
     }
 
     /**

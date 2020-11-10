@@ -31,6 +31,9 @@ Parameters:
   UserServiceSecretArn:
     Type: String
     Description: ARN to the Secret for Users and Role Service
+  OutputName:
+    Type: String
+    Default: CognitoPreTokenGenerationFunctionArn
 
 Resources:
   
@@ -104,4 +107,4 @@ Outputs:
     Description: ARN Identifier of the PreTokenGenerationTrigger
     Value: !GetAtt PreTokenGenerationTrigger.Arn
     Export:
-      Name: CognitoPreTokenGenerationFunctionArn
+      Name: !Ref OutputName

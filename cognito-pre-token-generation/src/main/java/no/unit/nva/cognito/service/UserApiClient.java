@@ -54,10 +54,10 @@ public class UserApiClient implements UserApi {
         this.httpClient = httpClient;
         this.objectMapper = objectMapper;
         this.secretsReader = secretsReader;
-        this.userApiScheme = environment.readEnvOpt(USER_API_SCHEME).orElse("https");
-        this.userApiHost = environment.readEnvOpt(USER_API_HOST).orElse("api.dev.nva.aws.unit.no");
-        this.userServiceSecretName = environment.readEnvOpt(USER_SERVICE_SECRET_NAME).orElse("UserCatalogueApiKey");
-        this.userServiceSecretKey = environment.readEnvOpt(USER_SERVICE_SECRET_KEY).orElse("ApiKey");
+        this.userApiScheme = environment.readEnv(USER_API_SCHEME);
+        this.userApiHost = environment.readEnv(USER_API_HOST);
+        this.userServiceSecretName = environment.readEnv(USER_SERVICE_SECRET_NAME);
+        this.userServiceSecretKey = environment.readEnv(USER_SERVICE_SECRET_KEY);
     }
 
     @Override

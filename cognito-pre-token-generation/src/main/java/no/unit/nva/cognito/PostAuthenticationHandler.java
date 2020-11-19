@@ -60,6 +60,8 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
     @Override
     public Map<String, Object> handleRequest(Map<String, Object> input, Context context) {
 
+        logger.debug("handler input={}",input);
+
         Event event = parseEventFromInput(input);
 
         String userPoolId = event.getUserPoolId();

@@ -69,12 +69,10 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
 
         UserAttributes userAttributes = event.getRequest().getUserAttributes();
 
-        String orgNumber;
-        if(userIsBibsysHosted(userAttributes)) {
-            orgNumber = userAttributes.getHostedOrgNumber();
-        } else {
-           orgNumber = userAttributes.getOrgNumber();
+        if (userIsBibsysHosted(userAttributes)) {
+            userAttributes.setOrgNumber(userAttributes.getHostedOrgNumber());
         }
+        String orgNumber = userAttributes.getOrgNumber();
         Optional<CustomerResponse> customer = mapOrgNumberToCustomer(removeCountryPrefix(orgNumber));
         Optional<String> customerId = customer.map(CustomerResponse::getCustomerId);
         Optional<String> cristinId = customer.map(CustomerResponse::getCristinId);

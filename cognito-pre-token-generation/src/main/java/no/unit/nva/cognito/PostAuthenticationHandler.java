@@ -46,7 +46,15 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
     public static final String NVA = "NVA";
     public static final String BIBSYS_HOST = "@bibsys.no";
     public static final String EMPTY_STRING = "";
+    public static final int START_OF_STRING = 0;
     private static final Logger logger = LoggerFactory.getLogger(PostAuthenticationHandler.class);
+    public static final String TRAILING_BRACKET = "]";
+    public static final char NABLA = '@';
+    public static final String COMMA_SPACE = ", ";
+    public static final String COMMA = ",";
+    public static final String APPLICATION_ROLES_MESSAGE = "applicationRoles: ";
+    public static final String HOSTED_AFFILIATION_MESSAGE =
+            "Overriding orgNumber({}) with hostedOrgNumber({}) and hostedAffiliation";
     private final UserService userService;
     private final CustomerApi customerApi;
 
@@ -71,8 +79,7 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
         UserAttributes userAttributes = event.getRequest().getUserAttributes();
 
         if (userIsBibsysHosted(userAttributes)) {
-            logger.info("Overriding orgNumber({}) with hostedOrgNumber({})",
-                    userAttributes.getOrgNumber(), userAttributes.getHostedOrgNumber());
+            logger.info(HOSTED_AFFILIATION_MESSAGE, userAttributes.getOrgNumber(), userAttributes.getHostedOrgNumber());
             userAttributes.setOrgNumber(userAttributes.getHostedOrgNumber());
             userAttributes.setAffiliation(extractAffiliationFromHostedUSer(userAttributes.getHostedAffiliation()));
         }
@@ -189,7 +196,7 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
 
     private String applicationRolesString(UserDto user) {
         String applicationRoles = toCsv(user.getRoles(), RoleDto::getRoleName);
-        logger.info("applicationRoles: " + applicationRoles);
+        logger.info(APPLICATION_ROLES_MESSAGE + applicationRoles);
         return applicationRoles;
     }
 
@@ -210,22 +217,20 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
     private boolean userIsBibsysHosted(UserAttributes userAttributes) {
         boolean isHosted = userAttributes.getFeideId().endsWith(BIBSYS_HOST)
                 && Objects.nonNull(userAttributes.getHostedOrgNumber());
-        logger.info("User {} isHosted={}", userAttributes, isHosted);
         return  isHosted;
     }
 
     private String extractAffiliationFromHostedUSer(String hostedAffiliation) {
 
-        List<String> shortenedAffiliation =  Arrays.stream(hostedAffiliation.split(","))
+        List<String> shortenedAffiliation =  Arrays.stream(hostedAffiliation.split(COMMA))
                 .map(this::extractAffiliation)
                 .collect(Collectors.toList());
 
-        final String strippedAffiliation = String.join(", ", shortenedAffiliation).concat("]");
-        logger.info("got {}, resulting in {}", hostedAffiliation, strippedAffiliation);
+        final String strippedAffiliation = String.join(COMMA_SPACE, shortenedAffiliation).concat(TRAILING_BRACKET);
         return strippedAffiliation;
     }
 
     private String extractAffiliation(String hostedAffiliation) {
-        return hostedAffiliation.substring(0, hostedAffiliation.indexOf('@'));
+        return hostedAffiliation.substring(START_OF_STRING, hostedAffiliation.indexOf(NABLA));
     }
 }

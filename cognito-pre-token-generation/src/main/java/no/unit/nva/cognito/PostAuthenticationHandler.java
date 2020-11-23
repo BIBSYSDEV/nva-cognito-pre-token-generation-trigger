@@ -8,6 +8,7 @@ import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.http.HttpClient;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -73,6 +74,7 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
             logger.info("Overriding orgNumber({}) with hostedOrgNumber({})",
                     userAttributes.getOrgNumber(), userAttributes.getHostedOrgNumber());
             userAttributes.setOrgNumber(userAttributes.getHostedOrgNumber());
+            userAttributes.setAffiliation(extractAffiliationFromHostedUSer(userAttributes.getHostedAffiliation()));
         }
         String orgNumber = userAttributes.getOrgNumber();
         Optional<CustomerResponse> customer = mapOrgNumberToCustomer(removeCountryPrefix(orgNumber));
@@ -210,5 +212,20 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
                 && Objects.nonNull(userAttributes.getHostedOrgNumber());
         logger.info("User {} isHosted={}", userAttributes, isHosted);
         return  isHosted;
+    }
+
+    private String extractAffiliationFromHostedUSer(String hostedAffiliation) {
+
+        List<String> shortenedAffiliation =  Arrays.stream(hostedAffiliation.split(","))
+                .map(this::extractAffiliation)
+                .collect(Collectors.toList());
+
+        final String strippedAffiliation = String.join(", ", shortenedAffiliation).concat("]");
+        logger.info("got {}, resulting in {}", hostedAffiliation, strippedAffiliation);
+        return strippedAffiliation;
+    }
+
+    private String extractAffiliation(String hostedAffiliation) {
+        return hostedAffiliation.substring(0, hostedAffiliation.indexOf('@'));
     }
 }

@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -42,6 +43,7 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
     public static final String COMMA_DELIMITER = ",";
     public static final String FEIDE_PREFIX = "feide:";
     public static final String NVA = "NVA";
+    public static final String BIBSYS_HOST = "@bibsys.no";
     public static final String EMPTY_STRING = "";
     private static final Logger logger = LoggerFactory.getLogger(PostAuthenticationHandler.class);
     private final UserService userService;
@@ -60,8 +62,6 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
     @Override
     public Map<String, Object> handleRequest(Map<String, Object> input, Context context) {
 
-        logger.info("handler input={}",input);
-
         Event event = parseEventFromInput(input);
 
         String userPoolId = event.getUserPoolId();
@@ -69,8 +69,13 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
 
         UserAttributes userAttributes = event.getRequest().getUserAttributes();
 
-        Optional<CustomerResponse> customer = mapOrgNumberToCustomer(
-            removeCountryPrefix(userAttributes.getOrgNumber()));
+        String orgNumber;
+        if(userIsBibsysHosted(userAttributes)) {
+            orgNumber = userAttributes.getHostedOrgNumber();
+        } else {
+           orgNumber = userAttributes.getOrgNumber();
+        }
+        Optional<CustomerResponse> customer = mapOrgNumberToCustomer(removeCountryPrefix(orgNumber));
         Optional<String> customerId = customer.map(CustomerResponse::getCustomerId);
         Optional<String> cristinId = customer.map(CustomerResponse::getCristinId);
 
@@ -198,5 +203,10 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
             .stream()
             .map(stringRepresentation)
             .collect(Collectors.joining(COMMA_DELIMITER));
+    }
+
+    private boolean userIsBibsysHosted(UserAttributes userAttributes) {
+        return userAttributes.getFeideId().endsWith(BIBSYS_HOST)
+                && Objects.nonNull(userAttributes.getHostedOrgNumber());
     }
 }

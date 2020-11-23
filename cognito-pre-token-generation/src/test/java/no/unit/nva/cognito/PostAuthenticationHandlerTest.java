@@ -20,9 +20,7 @@ import com.amazonaws.services.cognitoidp.model.AdminUpdateUserAttributesRequest;
 import com.amazonaws.services.cognitoidp.model.AdminUpdateUserAttributesResult;
 import com.amazonaws.services.cognitoidp.model.AttributeType;
 import com.amazonaws.services.lambda.runtime.Context;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JavaType;
-import java.nio.file.Path;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -42,11 +40,9 @@ import no.unit.nva.cognito.service.UserService;
 import no.unit.nva.useraccessmanagement.exceptions.InvalidEntryInternalException;
 import no.unit.nva.useraccessmanagement.model.RoleDto;
 import no.unit.nva.useraccessmanagement.model.UserDto;
-import nva.commons.utils.IoUtils;
 import nva.commons.utils.JsonUtils;
 import nva.commons.utils.SingletonCollector;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.mockito.invocation.InvocationOnMock;
 
@@ -54,7 +50,13 @@ import org.mockito.invocation.InvocationOnMock;
 public class PostAuthenticationHandlerTest {
 
     public static final String SAMPLE_ORG_NUMBER = "1234567890";
+    public static final String SAMPLE_HOSTED_ORG_NUMBER = "1234567890";
+
     public static final String SAMPLE_AFFILIATION = "[member, employee, staff]";
+    public static final String SAMPLE_HOSTED_AFFILIATION =
+            "[member@zs.bibsys.no, employee@zs.bibsys.no, staff@zs.bibsys.no]";
+    public static final String SAMPLE_HOSTED_FEIDE_ID = "feideId@bibsys.no";
+
     public static final String EMPTY_AFFILIATION = "[]";
     public static final String SAMPLE_FEIDE_ID = "feideId";
     public static final String SAMPLE_CUSTOMER_ID = "http://example.org/customer/123";
@@ -306,4 +308,52 @@ public class PostAuthenticationHandlerTest {
 
         return JsonUtils.objectMapper.convertValue(event, Map.class);
     }
+
+    private Map<String, Object> createRequestEventWithBibsysHostedUser() {
+        UserAttributes userAttributes = new UserAttributes();
+        userAttributes.setFeideId(SAMPLE_HOSTED_FEIDE_ID);
+        userAttributes.setHostedOrgNumber(SAMPLE_HOSTED_ORG_NUMBER);
+        userAttributes.setHostedAffiliation(SAMPLE_HOSTED_AFFILIATION);
+        userAttributes.setGivenName(SAMPLE_GIVEN_NAME);
+        userAttributes.setFamilyName(SAMPLE_FAMILY_NAME);
+
+        Request request = new Request();
+        request.setUserAttributes(userAttributes);
+
+        Event event = new Event();
+        event.setUserPoolId(SAMPLE_USER_POOL_ID);
+        event.setUserName(SAMPLE_USER_NAME);
+        event.setRequest(request);
+
+        return JsonUtils.objectMapper.convertValue(event, Map.class);
+    }
+
+    private UserDto hostedUserWithUserRole() throws InvalidEntryInternalException {
+        List<RoleDto> roles = new ArrayList<>();
+        roles.add(createRole(USER));
+        return UserDto.newBuilder()
+                .withUsername(SAMPLE_HOSTED_FEIDE_ID)
+                .withGivenName(SAMPLE_GIVEN_NAME)
+                .withFamilyName(SAMPLE_FAMILY_NAME)
+                .withRoles(roles)
+                .build();
+    }
+
+
+    @Test
+    public void handleRequestCreatesUserWithUserRoleWhenUserIsFeideHotelUser() throws InvalidEntryInternalException {
+        prepareMocksWithNoCustomer();
+
+        Map<String, Object> requestEvent = createRequestEventWithBibsysHostedUser();
+        final Map<String, Object> responseEvent = handler.handleRequest(requestEvent, mock(Context.class));
+
+        verifyNumberOfAttributeUpdatesInCognito(1);
+
+        UserDto expected = hostedUserWithUserRole();
+        UserDto createdUser = getUserFromMock();
+        assertEquals(expected, createdUser);
+        assertEquals(requestEvent, responseEvent);
+    }
+
+
 }

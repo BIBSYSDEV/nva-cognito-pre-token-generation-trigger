@@ -70,6 +70,8 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
         UserAttributes userAttributes = event.getRequest().getUserAttributes();
 
         if (userIsBibsysHosted(userAttributes)) {
+            logger.info("Overriding orgNumber({}) with hostedOrgNumber({})",
+                    userAttributes.getOrgNumber(), userAttributes.getHostedOrgNumber());
             userAttributes.setOrgNumber(userAttributes.getHostedOrgNumber());
         }
         String orgNumber = userAttributes.getOrgNumber();
@@ -204,7 +206,9 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
     }
 
     private boolean userIsBibsysHosted(UserAttributes userAttributes) {
-        return userAttributes.getFeideId().endsWith(BIBSYS_HOST)
+        boolean isHosted = userAttributes.getFeideId().endsWith(BIBSYS_HOST)
                 && Objects.nonNull(userAttributes.getHostedOrgNumber());
+        logger.info("User {} isHosted={}", userAttributes, isHosted);
+        return  isHosted;
     }
 }

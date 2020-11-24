@@ -309,7 +309,7 @@ public class PostAuthenticationHandlerTest {
         return JsonUtils.objectMapper.convertValue(event, Map.class);
     }
 
-    private Map<String, Object> createRequestEventWithBibsysHostedUser() {
+    private Map<String, Object> createRequestEventWithCompleteBibsysHostedUser() {
         UserAttributes userAttributes = new UserAttributes();
         userAttributes.setFeideId(SAMPLE_HOSTED_FEIDE_ID);
         userAttributes.setHostedOrgNumber(SAMPLE_HOSTED_ORG_NUMBER);
@@ -339,12 +339,31 @@ public class PostAuthenticationHandlerTest {
                 .build();
     }
 
+    private Map<String, Object> createRequestEventWithIncompleteBibsysHostedUser() {
+        UserAttributes userAttributes = new UserAttributes();
+        userAttributes.setFeideId(SAMPLE_HOSTED_FEIDE_ID);
+        userAttributes.setHostedOrgNumber(SAMPLE_HOSTED_ORG_NUMBER);
+        userAttributes.setHostedAffiliation(EMPTY_AFFILIATION);
+        userAttributes.setGivenName(SAMPLE_GIVEN_NAME);
+        userAttributes.setFamilyName(SAMPLE_FAMILY_NAME);
+
+        Request request = new Request();
+        request.setUserAttributes(userAttributes);
+
+        Event event = new Event();
+        event.setUserPoolId(SAMPLE_USER_POOL_ID);
+        event.setUserName(SAMPLE_USER_NAME);
+        event.setRequest(request);
+
+        return JsonUtils.objectMapper.convertValue(event, Map.class);
+    }
+
 
     @Test
-    public void handleRequestCreatesUserWithUserRoleWhenUserIsFeideHotelUser() throws InvalidEntryInternalException {
+    public void handleRequestCreatesUserWithUserRoleWhenUserIsFeideHostedUser() throws InvalidEntryInternalException {
         prepareMocksWithNoCustomer();
 
-        Map<String, Object> requestEvent = createRequestEventWithBibsysHostedUser();
+        Map<String, Object> requestEvent = createRequestEventWithCompleteBibsysHostedUser();
         final Map<String, Object> responseEvent = handler.handleRequest(requestEvent, mock(Context.class));
 
         verifyNumberOfAttributeUpdatesInCognito(1);
@@ -355,5 +374,19 @@ public class PostAuthenticationHandlerTest {
         assertEquals(requestEvent, responseEvent);
     }
 
+    @Test
+    public void handleRequestCreatesUserWithUserRoleWhenUserIsFeideHostedUserAndUserMissingAffiliation()
+            throws InvalidEntryInternalException {
+        prepareMocksWithNoCustomer();
 
+        Map<String, Object> requestEvent = createRequestEventWithIncompleteBibsysHostedUser();
+        final Map<String, Object> responseEvent = handler.handleRequest(requestEvent, mock(Context.class));
+
+        verifyNumberOfAttributeUpdatesInCognito(1);
+
+        UserDto expected = hostedUserWithUserRole();
+        UserDto createdUser = getUserFromMock();
+        assertEquals(expected, createdUser);
+        assertEquals(requestEvent, responseEvent);
+    }
 }

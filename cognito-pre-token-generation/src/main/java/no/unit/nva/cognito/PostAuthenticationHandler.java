@@ -1,21 +1,10 @@
 package no.unit.nva.cognito;
 
-import static no.unit.nva.cognito.util.OrgNumberCleaner.removeCountryPrefix;
 import com.amazonaws.services.cognitoidp.AWSCognitoIdentityProviderClient;
 import com.amazonaws.services.cognitoidp.model.AttributeType;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.net.http.HttpClient;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 import no.unit.nva.cognito.model.CustomerResponse;
 import no.unit.nva.cognito.model.Event;
 import no.unit.nva.cognito.model.UserAttributes;
@@ -31,6 +20,20 @@ import nva.commons.utils.JsonUtils;
 import nva.commons.utils.aws.SecretsReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.net.http.HttpClient;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import static java.util.Objects.nonNull;
+import static no.unit.nva.cognito.util.OrgNumberCleaner.removeCountryPrefix;
+import static nva.commons.utils.StringUtils.isEmpty;
 
 public class PostAuthenticationHandler implements RequestHandler<Map<String, Object>, Map<String, Object>> {
 
@@ -215,22 +218,25 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
     }
 
     private boolean userIsBibsysHosted(UserAttributes userAttributes) {
-        boolean isHosted = userAttributes.getFeideId().endsWith(BIBSYS_HOST)
-                && Objects.nonNull(userAttributes.getHostedOrgNumber());
-        return  isHosted;
+        return userAttributes.getFeideId().endsWith(BIBSYS_HOST)
+                && nonNull(userAttributes.getHostedOrgNumber());
     }
 
     private String extractAffiliationFromHostedUSer(String hostedAffiliation) {
 
-        List<String> shortenedAffiliation =  Arrays.stream(hostedAffiliation.split(COMMA))
+        List<String> shortenedAffiliations =  Arrays.stream(hostedAffiliation.split(COMMA))
                 .map(this::extractAffiliation)
+                .map(String::strip)
                 .collect(Collectors.toList());
 
-        final String strippedAffiliation = String.join(COMMA_SPACE, shortenedAffiliation).concat(TRAILING_BRACKET);
-        return strippedAffiliation;
+        return String.join(COMMA_SPACE, shortenedAffiliations).concat(TRAILING_BRACKET);
     }
 
     private String extractAffiliation(String hostedAffiliation) {
-        return hostedAffiliation.substring(START_OF_STRING, hostedAffiliation.indexOf(NABLA));
+        if (!isEmpty(hostedAffiliation) && hostedAffiliation.contains(String.valueOf(NABLA)))  {
+            return hostedAffiliation.substring(START_OF_STRING, hostedAffiliation.indexOf(NABLA));
+        } else {
+            return EMPTY_STRING;
+        }
     }
 }

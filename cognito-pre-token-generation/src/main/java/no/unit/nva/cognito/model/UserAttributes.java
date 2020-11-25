@@ -19,6 +19,12 @@ public class UserAttributes {
     @JsonProperty("family_name")
     private String familyName;
 
+    @JsonProperty("custom:hostedOrgNumber")
+    private String hostedOrgNumber;
+
+    @JsonProperty("custom:hostedAffiliation")
+    private String hostedAffiliation;
+
     public String getFeideId() {
         return feideId;
     }
@@ -57,5 +63,21 @@ public class UserAttributes {
 
     public void setFamilyName(String familyName) {
         this.familyName = familyName;
+    }
+
+    public String getHostedOrgNumber() {
+        return hostedOrgNumber;
+    }
+
+    public void setHostedOrgNumber(String hostedOrgNumber) {
+        this.hostedOrgNumber = hostedOrgNumber;
+    }
+
+    public String getHostedAffiliation() {
+        return hostedAffiliation;
+    }
+
+    public void setHostedAffiliation(String hostedAffiliation) {
+        this.hostedAffiliation = hostedAffiliation;
     }
 }

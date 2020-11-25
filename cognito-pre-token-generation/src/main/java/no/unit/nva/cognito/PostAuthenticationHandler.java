@@ -52,7 +52,7 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
     public static final int START_OF_STRING = 0;
     private static final Logger logger = LoggerFactory.getLogger(PostAuthenticationHandler.class);
     public static final String TRAILING_BRACKET = "]";
-    public static final char NABLA = '@';
+    public static final char AFFILIATION_PART_SEPARATOR = '@';
     public static final String COMMA_SPACE = ", ";
     public static final String COMMA = ",";
     public static final String APPLICATION_ROLES_MESSAGE = "applicationRoles: ";
@@ -233,8 +233,8 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
     }
 
     private String extractAffiliation(String hostedAffiliation) {
-        if (!isEmpty(hostedAffiliation) && hostedAffiliation.contains(String.valueOf(NABLA)))  {
-            return hostedAffiliation.substring(START_OF_STRING, hostedAffiliation.indexOf(NABLA));
+        if (!isEmpty(hostedAffiliation) && hostedAffiliation.contains(String.valueOf(AFFILIATION_PART_SEPARATOR)))  {
+            return hostedAffiliation.substring(START_OF_STRING, hostedAffiliation.indexOf(AFFILIATION_PART_SEPARATOR));
         } else {
             return EMPTY_STRING;
         }

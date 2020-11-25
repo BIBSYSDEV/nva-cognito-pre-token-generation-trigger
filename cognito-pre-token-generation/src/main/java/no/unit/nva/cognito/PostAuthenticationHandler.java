@@ -1,19 +1,10 @@
 package no.unit.nva.cognito;
 
-import static no.unit.nva.cognito.util.OrgNumberCleaner.removeCountryPrefix;
 import com.amazonaws.services.cognitoidp.AWSCognitoIdentityProviderClient;
 import com.amazonaws.services.cognitoidp.model.AttributeType;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.net.http.HttpClient;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 import no.unit.nva.cognito.model.CustomerResponse;
 import no.unit.nva.cognito.model.Event;
 import no.unit.nva.cognito.model.UserAttributes;
@@ -30,6 +21,20 @@ import nva.commons.utils.aws.SecretsReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.http.HttpClient;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import static java.util.Objects.nonNull;
+import static no.unit.nva.cognito.util.OrgNumberCleaner.removeCountryPrefix;
+import static nva.commons.utils.StringUtils.isEmpty;
+
 public class PostAuthenticationHandler implements RequestHandler<Map<String, Object>, Map<String, Object>> {
 
     public static final String CUSTOM_APPLICATION_ROLES = "custom:applicationRoles";
@@ -42,8 +47,17 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
     public static final String COMMA_DELIMITER = ",";
     public static final String FEIDE_PREFIX = "feide:";
     public static final String NVA = "NVA";
+    public static final String BIBSYS_HOST = "@bibsys.no";
     public static final String EMPTY_STRING = "";
+    public static final int START_OF_STRING = 0;
     private static final Logger logger = LoggerFactory.getLogger(PostAuthenticationHandler.class);
+    public static final String TRAILING_BRACKET = "]";
+    public static final char AFFILIATION_PART_SEPARATOR = '@';
+    public static final String COMMA_SPACE = ", ";
+    public static final String COMMA = ",";
+    public static final String APPLICATION_ROLES_MESSAGE = "applicationRoles: ";
+    public static final String HOSTED_AFFILIATION_MESSAGE =
+            "Overriding orgNumber({}) with hostedOrgNumber({}) and hostedAffiliation";
     private final UserService userService;
     private final CustomerApi customerApi;
 
@@ -67,8 +81,13 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
 
         UserAttributes userAttributes = event.getRequest().getUserAttributes();
 
-        Optional<CustomerResponse> customer = mapOrgNumberToCustomer(
-            removeCountryPrefix(userAttributes.getOrgNumber()));
+        if (userIsBibsysHosted(userAttributes)) {
+            logger.info(HOSTED_AFFILIATION_MESSAGE, userAttributes.getOrgNumber(), userAttributes.getHostedOrgNumber());
+            userAttributes.setOrgNumber(userAttributes.getHostedOrgNumber());
+            userAttributes.setAffiliation(extractAffiliationFromHostedUSer(userAttributes.getHostedAffiliation()));
+        }
+        String orgNumber = userAttributes.getOrgNumber();
+        Optional<CustomerResponse> customer = mapOrgNumberToCustomer(removeCountryPrefix(orgNumber));
         Optional<String> customerId = customer.map(CustomerResponse::getCustomerId);
         Optional<String> cristinId = customer.map(CustomerResponse::getCristinId);
 
@@ -180,7 +199,7 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
 
     private String applicationRolesString(UserDto user) {
         String applicationRoles = toCsv(user.getRoles(), RoleDto::getRoleName);
-        logger.info("applicationRoles: " + applicationRoles);
+        logger.info(APPLICATION_ROLES_MESSAGE + applicationRoles);
         return applicationRoles;
     }
 
@@ -196,5 +215,28 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
             .stream()
             .map(stringRepresentation)
             .collect(Collectors.joining(COMMA_DELIMITER));
+    }
+
+    private boolean userIsBibsysHosted(UserAttributes userAttributes) {
+        return userAttributes.getFeideId().endsWith(BIBSYS_HOST)
+                && nonNull(userAttributes.getHostedOrgNumber());
+    }
+
+    private String extractAffiliationFromHostedUSer(String hostedAffiliation) {
+
+        List<String> shortenedAffiliations =  Arrays.stream(hostedAffiliation.split(COMMA))
+                .map(this::extractAffiliation)
+                .map(String::strip)
+                .collect(Collectors.toList());
+
+        return String.join(COMMA_SPACE, shortenedAffiliations).concat(TRAILING_BRACKET);
+    }
+
+    private String extractAffiliation(String hostedAffiliation) {
+        if (!isEmpty(hostedAffiliation) && hostedAffiliation.contains(String.valueOf(AFFILIATION_PART_SEPARATOR)))  {
+            return hostedAffiliation.substring(START_OF_STRING, hostedAffiliation.indexOf(AFFILIATION_PART_SEPARATOR));
+        } else {
+            return EMPTY_STRING;
+        }
     }
 }

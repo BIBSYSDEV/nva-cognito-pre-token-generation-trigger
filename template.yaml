@@ -140,6 +140,6 @@ Resources:
 Outputs:
   CognitoPreTokenGenerationFunction:
     Description: ARN Identifier of the PreTokenGenerationTrigger
-    Value: !GetAtt PreTokenGenerationTrigger.Arn
+    Value: !Sub arn:aws:lambda:${AWS::AccountId}:function:${PreTokenGenerationTrigger}:live
     Export:
       Name: !Ref OutputName

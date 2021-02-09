@@ -1,5 +1,6 @@
 package no.unit.nva.cognito.service;
 
+import static java.lang.System.currentTimeMillis;
 import static nva.commons.utils.attempt.Try.attempt;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -62,13 +63,17 @@ public class UserApiClient implements UserApi {
 
     @Override
     public Optional<UserDto> getUser(String username) {
+        long start = currentTimeMillis();
         logger.info("Requesting user information for username: " + username);
         HttpResponse<String> response = fetchUserInformation(username);
         if (responseIsSuccessful(response)) {
+            logger.info("getUser success took {} ms", currentTimeMillis() - start);
             return Optional.of(tryParsingUser(response));
         } else if (responseIsNotFound(response)) {
+            logger.info("getUser success took {} ms", currentTimeMillis() - start);
             return Optional.empty();
         } else {
+            logger.info("getUser failure took {} ms", currentTimeMillis() - start);
             throw unexpectedException(response, COULD_NOT_FETCH_USER_ERROR_MESSAGE);
         }
     }
@@ -76,12 +81,15 @@ public class UserApiClient implements UserApi {
     @Override
     @JacocoGenerated
     public UserDto createUser(UserDto user) {
+        long start = currentTimeMillis();
         logger.info("Requesting user creation for username: " + user.getUsername());
 
         HttpResponse<String> createResponse = createNewUser(user);
         if (responseIsSuccessful(createResponse)) {
+            logger.info("createUser success took {} ms", currentTimeMillis() - start);
             return tryParsingUser(createResponse);
         } else {
+            logger.info("createUser failure took {} ms", currentTimeMillis() - start);
             throw unexpectedException(createResponse, COULD_NOT_CREATE_USER_ERROR_MESSAGE);
         }
     }

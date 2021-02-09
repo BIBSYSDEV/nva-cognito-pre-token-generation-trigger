@@ -20,6 +20,8 @@ import org.apache.http.client.utils.URIBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static java.lang.System.currentTimeMillis;
+
 public class CustomerApiClient implements CustomerApi {
 
     public static final String PATH = "/customer/orgNumber/";
@@ -42,20 +44,25 @@ public class CustomerApiClient implements CustomerApi {
 
     @Override
     public Optional<CustomerResponse> getCustomer(String orgNumber) {
+        long start = currentTimeMillis();
         logger.info("Requesting customer information for orgNumber: " + orgNumber);
         try {
             var response = fetchCustomerInformation(orgNumber)
                 .orElseThrow(getHttpClientInitializationError());
             if (response.statusCode() == HttpStatus.SC_NOT_FOUND) {
+                logger.info("getCustomer success took {} ms", currentTimeMillis() - start);
                 return Optional.empty();
             }
             if (response.statusCode() != HttpStatus.SC_OK) {
+                logger.info("getCustomer failure took {} ms", currentTimeMillis() - start);
                 logger.error("Error fetching customer information, API response was {}", response.statusCode());
                 throw new IllegalStateException("Error fetching customer information");
             }
+            logger.info("getCustomer success took {} ms", currentTimeMillis() - start);
             return Optional.ofNullable(this.parseCustomer(response));
         } catch (JsonProcessingException e) {
             logger.error("Error parsing customer information", e);
+            logger.info("getCustomer failure took {} ms", currentTimeMillis() - start);
             throw new IllegalStateException("Error parsing customer information");
         }
     }

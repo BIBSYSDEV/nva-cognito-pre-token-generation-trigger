@@ -92,6 +92,13 @@ Resources:
       FunctionName: !Ref PreTokenGenerationTrigger
       Principal: cognito-idp.amazonaws.com
 
+  InvokePostAuthenticationTriggerLivePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Sub ${PreTokenGenerationTrigger}:live
+      Principal: cognito-idp.amazonaws.com
+
   PreTokenGenerationTrigger:
     Type: AWS::Serverless::Function
     Properties:

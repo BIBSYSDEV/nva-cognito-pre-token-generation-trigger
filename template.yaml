@@ -34,6 +34,14 @@ Parameters:
   OutputName:
     Type: String
     Default: CognitoPreTokenGenerationFunctionArn
+  MaxConcurrency:
+    Type: String
+    Description: Maximum capacity for provisioned concurrency
+    Default: 10
+  MinConcurrency:
+    Type: String
+    Description: Minimum capacity for provisioned concurrency
+    Default: 1
 
 Resources:
   
@@ -84,6 +92,13 @@ Resources:
       FunctionName: !Ref PreTokenGenerationTrigger
       Principal: cognito-idp.amazonaws.com
 
+  InvokePostAuthenticationTriggerLivePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Sub ${PreTokenGenerationTrigger}:live
+      Principal: cognito-idp.amazonaws.com
+
   PreTokenGenerationTrigger:
     Type: AWS::Serverless::Function
     Properties:
@@ -92,6 +107,11 @@ Resources:
       Runtime: java11
       Role: !GetAtt TriggerExecutionRole.Arn
       MemorySize: 1408
+      AutoPublishAlias: live
+      DeploymentPreference:
+        Type: AllAtOnce
+      ProvisionedConcurrencyConfig:
+        ProvisionedConcurrentExecutions: 1
       Timeout: 10
       Environment:
         Variables:
@@ -102,9 +122,39 @@ Resources:
           USER_SERVICE_SECRET_NAME: !Ref UserServiceSecretName
           USER_SERVICE_SECRET_KEY: !Ref UserServiceSecretKey
 
+  PreTokenGenerationTriggerScalableTarget:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    Properties:
+      MaxCapacity: !Ref MaxConcurrency
+      MinCapacity: !Ref MinConcurrency
+      ResourceId: !Sub function:${PreTokenGenerationTrigger}:live
+      RoleARN: !Sub arn:aws:iam::${AWS::AccountId}:role/aws-service-role/lambda.application-autoscaling.amazonaws.com/AWSServiceRoleForApplicationAutoScaling_LambdaConcurrency
+      ScalableDimension: lambda:function:ProvisionedConcurrency
+      ServiceNamespace: lambda
+    DependsOn: PreTokenGenerationTriggerAliaslive
+
+  PreTokenGenerationTriggerScalingPolicy:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Properties:
+      PolicyName: utilization
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId: !Ref PreTokenGenerationTriggerScalableTarget
+      TargetTrackingScalingPolicyConfiguration:
+        TargetValue: 0.70
+        PredefinedMetricSpecification:
+          PredefinedMetricType: LambdaProvisionedConcurrencyUtilization
+
+  PreTokenGenerationTriggerArnParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: ARN to function handling PreTokenGeneration trigger for login.
+      Name: !Ref OutputName
+      Type: String
+      Value: !Sub arn:aws:lambda:${AWS::AccountId}:function:${PreTokenGenerationTrigger}:live
+
 Outputs:
   CognitoPreTokenGenerationFunction:
     Description: ARN Identifier of the PreTokenGenerationTrigger
-    Value: !GetAtt PreTokenGenerationTrigger.Arn
+    Value: !Sub arn:aws:lambda:${AWS::AccountId}:function:${PreTokenGenerationTrigger}:live
     Export:
       Name: !Ref OutputName

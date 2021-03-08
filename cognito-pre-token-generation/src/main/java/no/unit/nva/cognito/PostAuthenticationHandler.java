@@ -73,7 +73,7 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
 
     @Override
     public Map<String, Object> handleRequest(Map<String, Object> input, Context context) {
-
+        long start = System.currentTimeMillis();
         Event event = parseEventFromInput(input);
 
         String userPoolId = event.getUserPoolId();
@@ -95,6 +95,7 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
 
         updateUserDetailsInUserPool(userPoolId, userName, userAttributes, user, cristinId);
 
+        logger.info("handleRequest took {} ms", System.currentTimeMillis() - start);
         return input;
     }
 
@@ -144,12 +145,14 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
                                              UserAttributes userAttributes,
                                              UserDto user,
                                              Optional<String> cristinId) {
-
+        long start = System.currentTimeMillis();
         List<AttributeType> cognitoUserAttributes = createUserAttributes(userAttributes, user, cristinId);
         userService.updateUserAttributes(
             userPoolId,
             userName,
             cognitoUserAttributes);
+        logger.info("updateUserDetailsInUserPool took {} ms", System.currentTimeMillis() - start);
+
     }
 
     private UserDto getUserFromCatalogueOrAddUser(UserAttributes userAttributes, Optional<String> customerId) {

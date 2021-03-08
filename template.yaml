@@ -86,6 +86,8 @@ Resources:
                 Resource: !Ref UserServiceSecretArn
 
   InvokePostAuthenticationTriggerPermission:
+    DependsOn:
+      - PreTokenGenerationTriggerAliaslive
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
@@ -93,6 +95,9 @@ Resources:
       Principal: cognito-idp.amazonaws.com
 
   InvokePostAuthenticationTriggerLivePermission:
+    DependsOn:
+      - PreTokenGenerationTriggerAliaslive
+      - PreTokenGenerationTrigger
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
@@ -123,6 +128,9 @@ Resources:
           USER_SERVICE_SECRET_KEY: !Ref UserServiceSecretKey
 
   PreTokenGenerationTriggerScalableTarget:
+    DependsOn:
+      - PreTokenGenerationTriggerAliaslive
+      - PreTokenGenerationTrigger
     Type: AWS::ApplicationAutoScaling::ScalableTarget
     Properties:
       MaxCapacity: !Ref MaxConcurrency
@@ -131,7 +139,6 @@ Resources:
       RoleARN: !Sub arn:aws:iam::${AWS::AccountId}:role/aws-service-role/lambda.application-autoscaling.amazonaws.com/AWSServiceRoleForApplicationAutoScaling_LambdaConcurrency
       ScalableDimension: lambda:function:ProvisionedConcurrency
       ServiceNamespace: lambda
-    DependsOn: PreTokenGenerationTriggerAliaslive
 
   PreTokenGenerationTriggerScalingPolicy:
     Type: AWS::ApplicationAutoScaling::ScalingPolicy
@@ -145,6 +152,9 @@ Resources:
           PredefinedMetricType: LambdaProvisionedConcurrencyUtilization
 
   PreTokenGenerationTriggerArnParameter:
+    DependsOn:
+      - PreTokenGenerationTrigger
+      - PreTokenGenerationTriggerAliaslive
     Type: AWS::SSM::Parameter
     Properties:
       Description: ARN to function handling PreTokenGeneration trigger for login.

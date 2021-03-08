@@ -144,6 +144,14 @@ Resources:
         PredefinedMetricSpecification:
           PredefinedMetricType: LambdaProvisionedConcurrencyUtilization
 
+  PreTokenGenerationTriggerArnParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: ARN to function handling PreTokenGeneration trigger for login.
+      Name: !Ref OutputName
+      Type: String
+      Value: !Sub arn:aws:lambda:${AWS::AccountId}:function:${PreTokenGenerationTrigger}:live
+
 Outputs:
   CognitoPreTokenGenerationFunction:
     Description: ARN Identifier of the PreTokenGenerationTrigger

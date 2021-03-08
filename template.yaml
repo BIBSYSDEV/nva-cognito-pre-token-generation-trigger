@@ -33,7 +33,7 @@ Parameters:
     Description: ARN to the Secret for Users and Role Service
   OutputName:
     Type: String
-    Default: CognitoPreTokenGenerationFunctionArn
+    Default: CognitoPreTokenGenerationTriggerArn
   MaxConcurrency:
     Type: String
     Description: Maximum capacity for provisioned concurrency

@@ -159,7 +159,6 @@ Resources:
       Description: ARN to function handling PreTokenGeneration trigger for login.
       Name: !Ref OutputName
       Type: String
-#      Value: !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${PreTokenGenerationTrigger}:live
       Value: !Sub
         - ${PreTokenGenerationTriggerArn}:live
         - PreTokenGenerationTriggerArn: !GetAtt PreTokenGenerationTrigger.Arn
@@ -167,7 +166,6 @@ Resources:
 Outputs:
   CognitoPreTokenGenerationFunction:
     Description: ARN Identifier of the PreTokenGenerationTrigger
-#    Value: !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${PreTokenGenerationTrigger}:live
     Value: !Sub
       - ${PreTokenGenerationTriggerArn}:live
       - PreTokenGenerationTriggerArn: !GetAtt PreTokenGenerationTrigger.Arn

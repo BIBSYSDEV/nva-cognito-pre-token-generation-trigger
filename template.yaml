@@ -153,18 +153,23 @@ Resources:
 
   PreTokenGenerationTriggerArnParameter:
     DependsOn:
-      - PreTokenGenerationTrigger
       - PreTokenGenerationTriggerAliaslive
     Type: AWS::SSM::Parameter
     Properties:
       Description: ARN to function handling PreTokenGeneration trigger for login.
       Name: !Ref OutputName
       Type: String
-      Value: !Sub arn:aws:lambda:${AWS::AccountId}:function:${PreTokenGenerationTrigger}:live
+#      Value: !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${PreTokenGenerationTrigger}:live
+      Value: !Sub
+        - ${PreTokenGenerationTriggerArn}:live
+        - PreTokenGenerationTriggerArn: !GetAtt PreTokenGenerationTrigger.Arn
 
 Outputs:
   CognitoPreTokenGenerationFunction:
     Description: ARN Identifier of the PreTokenGenerationTrigger
-    Value: !Sub arn:aws:lambda:${AWS::AccountId}:function:${PreTokenGenerationTrigger}:live
+#    Value: !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${PreTokenGenerationTrigger}:live
+    Value: !Sub
+      - ${PreTokenGenerationTriggerArn}:live
+      - PreTokenGenerationTriggerArn: !GetAtt PreTokenGenerationTrigger.Arn
     Export:
       Name: !Ref OutputName

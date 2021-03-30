@@ -12,6 +12,9 @@ import static org.apache.http.HttpStatus.SC_INTERNAL_SERVER_ERROR;
 import static org.apache.http.HttpStatus.SC_OK;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.core.Is.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -21,9 +24,14 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
+import java.net.HttpURLConnection;
 import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpRequest.BodyPublisher;
 import java.net.http.HttpResponse;
+import java.net.http.HttpResponse.BodyHandler;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 import no.unit.nva.cognito.exception.BadGatewayException;
 import no.unit.nva.useraccessmanagement.exceptions.InvalidEntryInternalException;
 import no.unit.nva.useraccessmanagement.model.RoleDto;
@@ -45,25 +53,24 @@ public class UserApiClientTest {
     public static final String SAMPLE_USERNAME = "user@name";
     public static final String SAMPLE_INSTITUTION_ID = "institution.id";
     public static final String CREATOR = "Creator";
-    public static final String THE_API_KEY = "TheApiKey";
     public static final String SAMPLE_API_SCHEME = "http";
     public static final String SAMPLE_API_HOST = "example.org";
     public static final String SAMPLE_FAMILY_NAME = "familyName";
     public static final String SAMPLE_GIVEN_NAME = "givenName";
+    public static final String SOME_SECRET = "someSecret";
 
     private ObjectMapper objectMapper;
     private UserApiClient userApiClient;
     private HttpClient httpClient;
-    private SecretsReader secretsReader;
-    private HttpResponse httpResponse;
+    private HttpResponse<String> httpResponse;
 
     /**
      * Set up test environment.
      */
     @BeforeEach
-    public void init() {
+    public void init() throws ErrorReadingSecretException {
         objectMapper = new ObjectMapper();
-        secretsReader = mock(SecretsReader.class);
+        SecretsReader secretsReader = mockSecretsReader();
         Environment environment = mock(Environment.class);
         when(environment.readEnv(USER_API_SCHEME)).thenReturn(SAMPLE_API_SCHEME);
         when(environment.readEnv(USER_API_HOST)).thenReturn(SAMPLE_API_HOST);
@@ -77,9 +84,8 @@ public class UserApiClientTest {
 
     @Test
     public void getUserReturnsUserOnValidUsername() throws Exception {
-        when(httpResponse.body()).thenReturn(getValidJsonUser());
-        when(httpResponse.statusCode()).thenReturn(SC_OK);
-        when(httpClient.send(any(), any())).thenReturn(httpResponse);
+        httpResponse = successfulGetResponse();
+        when(httpClient.send(any(), any())).thenAnswer(invocation->httpResponse);
 
         Optional<UserDto> user = userApiClient.getUser(SAMPLE_USERNAME);
 
@@ -92,7 +98,7 @@ public class UserApiClientTest {
         final TestAppender appender = LogUtils.getTestingAppender(UserApiClient.class);
         when(httpResponse.body()).thenReturn(GARBAGE_JSON);
         when(httpResponse.statusCode()).thenReturn(SC_OK);
-        when(httpClient.send(any(), any())).thenReturn(httpResponse);
+        when(httpClient.send(any(), any())).thenAnswer(invocation->httpResponse);
 
         Executable action = () -> userApiClient.getUser(SAMPLE_USERNAME);
 
@@ -106,7 +112,7 @@ public class UserApiClientTest {
         throws IOException, InterruptedException, BadGatewayException {
         final TestAppender logAppendeer = LogUtils.getTestingAppender(UserApiClient.class);
         when(httpResponse.statusCode()).thenReturn(SC_INTERNAL_SERVER_ERROR);
-        when(httpClient.send(any(), any())).thenReturn(httpResponse);
+        when(httpClient.send(any(), any())).thenAnswer(invocation->httpResponse);
 
         Executable action = () -> userApiClient.getUser(SAMPLE_USERNAME);
 
@@ -127,14 +133,12 @@ public class UserApiClientTest {
 
     @Test
     public void createUserReturnsCreatedUserOnSuccess()
-        throws IOException, InterruptedException, InvalidEntryInternalException,
-               BadGatewayException, ErrorReadingSecretException {
+        throws IOException, InterruptedException, InvalidEntryInternalException, BadGatewayException {
         when(httpResponse.body()).thenReturn(getValidJsonUser());
         when(httpResponse.statusCode()).thenReturn(SC_OK);
-        when(httpClient.send(any(), any())).thenReturn(httpResponse);
-        prepareMocksWithSecret();
+        when(httpClient.send(any(), any())).thenAnswer(invocation->httpResponse);
 
-        UserDto requestUser = createUser();
+        UserDto requestUser = sampleUser();
 
         UserDto responseUser = userApiClient.createUser(requestUser);
 
@@ -147,31 +151,82 @@ public class UserApiClientTest {
         final TestAppender appender = LogUtils.getTestingAppender(UserApiClient.class);
         when(httpClient.send(any(), any())).thenThrow(IOException.class);
 
-        UserDto requestUser = createUser();
+        UserDto requestUser = sampleUser();
 
         Exception exception = assertThrows(BadGatewayException.class,
-            () -> userApiClient.createUser(requestUser));
+                                           () -> userApiClient.createUser(requestUser));
 
         assertEquals(COULD_NOT_CREATE_USER_ERROR_MESSAGE, exception.getMessage());
         String messages = appender.getMessages();
         assertThat(messages, containsString(COULD_NOT_CREATE_USER_ERROR_MESSAGE));
     }
 
+    @Test
+    public void updateUserSendsAPutRequestToUserServiceWithUserIdentifierInPathAndUserInBody()
+        throws InvalidEntryInternalException, IOException, InterruptedException {
+
+        AtomicReference<Boolean> requestIsReceived = new AtomicReference<>();
+        requestIsReceived.set(false);
+        when(httpClient.send(any(HttpRequest.class), any(BodyHandler.class)))
+            .thenAnswer((invocation -> {
+                HttpRequest request = invocation.getArgument(0);
+                return assertThatPutRequestContainsBodyAndCorrectMethod(requestIsReceived, request);
+            }));
+
+        userApiClient.updateUser(sampleUser());
+        assertThat(requestIsReceived.get(), is(true));
+    }
+
+    @Test
+    public void updateUserThrowsBadGatewayExceptionIfResponseIsNotSuccessful()
+        throws IOException, InterruptedException {
+        when(httpClient.send(any(HttpRequest.class), any(BodyHandler.class)))
+            .thenAnswer(invocation->mockResponse(HttpURLConnection.HTTP_UNAUTHORIZED));
+
+        Executable action = () -> userApiClient.updateUser(sampleUser());
+        assertThrows(BadGatewayException.class, action);
+    }
+
     public String getValidJsonUser() throws JsonProcessingException, InvalidEntryInternalException {
-        return objectMapper.writeValueAsString(createUser());
+        return objectMapper.writeValueAsString(sampleUser());
     }
 
-    private void prepareMocksWithSecret() throws ErrorReadingSecretException {
-        when(secretsReader.fetchSecret(anyString(), anyString())).thenReturn(THE_API_KEY);
+    private HttpResponse<String> assertThatPutRequestContainsBodyAndCorrectMethod(
+        AtomicReference<Boolean> requestIsReceived,
+        HttpRequest request) {
+        Long contentLength = request.bodyPublisher().map(BodyPublisher::contentLength).orElse(0L);
+        assertThat(request.method(), is(equalTo("PUT")));
+        assertThat(contentLength, is(greaterThan(0L)));
+        requestIsReceived.set(true);
+        return mockResponse(HttpURLConnection.HTTP_ACCEPTED);
     }
 
-    private UserDto createUser() throws InvalidEntryInternalException {
+    private SecretsReader mockSecretsReader() throws ErrorReadingSecretException {
+        SecretsReader secretsReader = mock(SecretsReader.class);
+        when(secretsReader.fetchSecret(anyString(), anyString())).thenReturn(SOME_SECRET);
+        return secretsReader;
+    }
+
+    private HttpResponse<String> successfulGetResponse() throws InvalidEntryInternalException, JsonProcessingException {
+        HttpResponse<String> response = mock(HttpResponse.class);
+        when(response.body()).thenReturn(getValidJsonUser());
+        when(response.statusCode()).thenReturn(SC_OK);
+        return response;
+    }
+
+    private HttpResponse<String> mockResponse(int statusCode) {
+        HttpResponse<String> response = mock(HttpResponse.class);
+        when(response.statusCode()).thenReturn(statusCode);
+        return response;
+    }
+
+    private UserDto sampleUser() throws InvalidEntryInternalException {
         return UserDto.newBuilder()
-            .withRoles(singletonList(RoleDto.newBuilder().withName(CREATOR).build()))
-            .withUsername(SAMPLE_USERNAME)
-            .withInstitution(SAMPLE_INSTITUTION_ID)
-            .withGivenName(SAMPLE_GIVEN_NAME)
-            .withFamilyName(SAMPLE_FAMILY_NAME)
-            .build();
+                   .withRoles(singletonList(RoleDto.newBuilder().withName(CREATOR).build()))
+                   .withUsername(SAMPLE_USERNAME)
+                   .withInstitution(SAMPLE_INSTITUTION_ID)
+                   .withGivenName(SAMPLE_GIVEN_NAME)
+                   .withFamilyName(SAMPLE_FAMILY_NAME)
+                   .build();
     }
 }

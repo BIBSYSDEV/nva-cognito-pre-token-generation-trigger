@@ -7,18 +7,21 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
+import java.net.http.HttpRequest.BodyPublisher;
 import java.net.http.HttpRequest.BodyPublishers;
+import java.net.http.HttpRequest.Builder;
 import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.util.Optional;
+import java.util.concurrent.Callable;
 import no.unit.nva.cognito.exception.BadGatewayException;
 import no.unit.nva.useraccessmanagement.model.UserDto;
 import nva.commons.core.Environment;
 import nva.commons.core.JacocoGenerated;
 import nva.commons.core.attempt.Failure;
-import nva.commons.secrets.ErrorReadingSecretException;
 import nva.commons.secrets.SecretsReader;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.utils.URIBuilder;
@@ -39,6 +42,9 @@ public class UserApiClient implements UserApi {
     public static final String COULD_NOT_FETCH_USER_ERROR_MESSAGE = "Could not fetch user: ";
     public static final String COULD_NOT_CREATE_USER_ERROR_MESSAGE = "Could not crate user: ";
     public static final String ERROR_MESSAGE_TEMPLATE = "%s\nStatus Code:%d\n:Response message:%s";
+    public static final String UPDATE_USER_FAILURE_RESPONSE_LOGGING =
+        "Could not update user. User service response:{},{}";
+    public static final String UPDATE_USER_FAILURE = "Could not update user";
     private static final Logger logger = LoggerFactory.getLogger(UserApiClient.class);
     private final ObjectMapper objectMapper;
     private final HttpClient httpClient;
@@ -94,6 +100,44 @@ public class UserApiClient implements UserApi {
         }
     }
 
+    public void updateUser(UserDto user) throws IOException, InterruptedException {
+        HttpRequest request = updateUserRequest(user);
+        HttpResponse<String> response = sendHttpRequest(request);
+
+        if (HttpURLConnection.HTTP_ACCEPTED != response.statusCode()) {
+            logResponseError(response);
+            throw new BadGatewayException(UPDATE_USER_FAILURE);
+        }
+    }
+
+    private HttpRequest updateUserRequest(UserDto user) {
+        return attempt(() -> formUri(user.getUsername()))
+                   .map(HttpRequest::newBuilder)
+                   .map(builder -> builder.PUT(userAsRequestBody(user)))
+                   .map(this::authorizationHeader)
+                   .map(Builder::build)
+                   .orElseThrow();
+    }
+
+    private void logResponseError(HttpResponse<String> response) {
+        logger.error(UPDATE_USER_FAILURE_RESPONSE_LOGGING, response.statusCode(), response.body());
+    }
+
+    private Builder authorizationHeader(Builder builder) {
+        String userServiceCredentials = fetchUserServiceCredentials();
+        return builder.header(AUTHORIZATION, userServiceCredentials);
+    }
+
+    private String fetchUserServiceCredentials() {
+        return attempt(() -> secretsReader.fetchSecret(userServiceSecretName, userServiceSecretKey)).orElseThrow();
+    }
+
+    private BodyPublisher userAsRequestBody(UserDto user) {
+        return attempt(() -> objectMapper.writeValueAsString(user))
+                   .map(BodyPublishers::ofString)
+                   .orElseThrow();
+    }
+
     private RuntimeException unexpectedException(HttpResponse<String> response, String errorPrefix) {
         String errorMessage = formatErrorMessageForFailedResponse(response, errorPrefix);
         logger.error(errorMessage);
@@ -110,8 +154,7 @@ public class UserApiClient implements UserApi {
 
     private HttpResponse<String> createNewUser(UserDto user) {
         return
-            attempt(() -> formUri())
-                .map(URIBuilder::build)
+            attempt((Callable<URI>) this::formUri)
                 .map(uri -> buildCreateUserRequest(uri, user))
                 .map(this::sendHttpRequest)
                 .orElseThrow(fail -> logResponseError(fail, COULD_NOT_CREATE_USER_ERROR_MESSAGE));
@@ -119,15 +162,14 @@ public class UserApiClient implements UserApi {
 
     private HttpResponse<String> fetchUserInformation(String username) {
         return attempt(() -> formUri(username))
-            .map(URIBuilder::build)
-            .map(this::buildGetUserRequest)
-            .map(this::sendHttpRequest)
-            .orElseThrow(fail -> logResponseError(fail, COULD_NOT_FETCH_USER_ERROR_MESSAGE));
+                   .map(this::buildGetUserRequest)
+                   .map(this::sendHttpRequest)
+                   .orElseThrow(fail -> logResponseError(fail, COULD_NOT_FETCH_USER_ERROR_MESSAGE));
     }
 
     private UserDto tryParsingUser(HttpResponse<String> response) {
         return attempt(() -> parseUser(response))
-            .orElseThrow(this::logErrorParsingUserInformation);
+                   .orElseThrow(this::logErrorParsingUserInformation);
     }
 
     private boolean responseIsSuccessful(HttpResponse<String> response) {
@@ -153,33 +195,34 @@ public class UserApiClient implements UserApi {
         return httpClient.send(httpRequest, BodyHandlers.ofString());
     }
 
-    private URIBuilder formUri(String username) {
+    private URI formUri(String username) throws URISyntaxException {
         return new URIBuilder()
-            .setScheme(userApiScheme)
-            .setHost(userApiHost)
-            .setPath(String.join(DELIMITER, PATH, username));
+                   .setScheme(userApiScheme)
+                   .setHost(userApiHost)
+                   .setPath(String.join(DELIMITER, PATH, username))
+                   .build();
     }
 
-    private URIBuilder formUri() {
+    private URI formUri() throws URISyntaxException {
         return new URIBuilder()
-            .setScheme(userApiScheme)
-            .setHost(userApiHost)
-            .setPath(PATH);
+                   .setScheme(userApiScheme)
+                   .setHost(userApiHost)
+                   .setPath(PATH)
+                   .build();
     }
 
     private HttpRequest buildGetUserRequest(URI uri) {
         return HttpRequest.newBuilder()
-            .uri(uri)
-            .GET()
-            .build();
+                   .uri(uri)
+                   .GET()
+                   .build();
     }
 
-    private HttpRequest buildCreateUserRequest(URI uri, UserDto user)
-        throws JsonProcessingException, ErrorReadingSecretException {
-        return HttpRequest.newBuilder()
-            .uri(uri)
-            .header(AUTHORIZATION, secretsReader.fetchSecret(userServiceSecretName, userServiceSecretKey))
-            .POST(BodyPublishers.ofString(objectMapper.writeValueAsString(user)))
-            .build();
+    private HttpRequest buildCreateUserRequest(URI uri, UserDto user) {
+        return Optional.of(HttpRequest.newBuilder(uri))
+                   .map(this::authorizationHeader)
+                   .map(builder -> builder.POST(userAsRequestBody(user)))
+                   .map(Builder::build)
+                   .orElseThrow();
     }
 }

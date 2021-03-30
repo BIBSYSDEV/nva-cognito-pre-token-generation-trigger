@@ -16,7 +16,6 @@ import org.slf4j.LoggerFactory;
 
 public class UserService {
 
-    public static final List<RoleDto> NO_ROLE = Collections.emptyList();
     public static final String USER = "User";
     public static final String CREATOR = "Creator";
     public static final String FACULTY = "faculty";

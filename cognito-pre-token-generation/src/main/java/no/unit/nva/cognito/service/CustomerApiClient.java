@@ -11,10 +11,11 @@ import java.net.http.HttpResponse.BodyHandlers;
 import java.util.Optional;
 import java.util.function.Supplier;
 import no.unit.nva.cognito.model.CustomerResponse;
-import nva.commons.utils.Environment;
-import nva.commons.utils.attempt.ConsumerWithException;
-import nva.commons.utils.attempt.Failure;
-import nva.commons.utils.attempt.Try;
+
+import nva.commons.core.Environment;
+import nva.commons.core.attempt.ConsumerWithException;
+import nva.commons.core.attempt.Failure;
+import nva.commons.core.attempt.Try;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.utils.URIBuilder;
 import org.slf4j.Logger;

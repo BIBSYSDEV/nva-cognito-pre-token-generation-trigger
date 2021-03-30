@@ -1,3 +1,5 @@
 dependencies{
-
+    compileOnly (group: 'com.amazonaws', name: 'aws-java-sdk-secretsmanager', version: project.ext.awsSdkVersion){
+        because "PMD cannot find com/amazonaws/services/secretsmanager/AWSSecretsManager"
+    }
 }

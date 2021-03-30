@@ -1,7 +1,7 @@
 package no.unit.nva.cognito.service;
 
 import static no.unit.nva.cognito.service.UserApiClient.COULD_NOT_CREATE_USER_ERROR_MESSAGE;
-import static nva.commons.utils.attempt.Try.attempt;
+import static nva.commons.core.attempt.Try.attempt;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;

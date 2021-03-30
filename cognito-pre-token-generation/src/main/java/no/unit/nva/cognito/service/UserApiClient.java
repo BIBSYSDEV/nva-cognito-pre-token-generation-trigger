@@ -1,7 +1,7 @@
 package no.unit.nva.cognito.service;
 
 import static java.lang.System.currentTimeMillis;
-import static nva.commons.utils.attempt.Try.attempt;
+import static nva.commons.core.attempt.Try.attempt;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
@@ -15,11 +15,11 @@ import java.net.http.HttpResponse.BodyHandlers;
 import java.util.Optional;
 import no.unit.nva.cognito.exception.BadGatewayException;
 import no.unit.nva.useraccessmanagement.model.UserDto;
-import nva.commons.exceptions.ForbiddenException;
-import nva.commons.utils.Environment;
-import nva.commons.utils.JacocoGenerated;
-import nva.commons.utils.attempt.Failure;
-import nva.commons.utils.aws.SecretsReader;
+import nva.commons.core.Environment;
+import nva.commons.core.JacocoGenerated;
+import nva.commons.core.attempt.Failure;
+import nva.commons.secrets.ErrorReadingSecretException;
+import nva.commons.secrets.SecretsReader;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.utils.URIBuilder;
 import org.slf4j.Logger;
@@ -175,7 +175,7 @@ public class UserApiClient implements UserApi {
     }
 
     private HttpRequest buildCreateUserRequest(URI uri, UserDto user)
-        throws JsonProcessingException, ForbiddenException {
+        throws JsonProcessingException, ErrorReadingSecretException {
         return HttpRequest.newBuilder()
             .uri(uri)
             .header(AUTHORIZATION, secretsReader.fetchSecret(userServiceSecretName, userServiceSecretKey))

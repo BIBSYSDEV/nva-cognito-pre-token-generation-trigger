@@ -28,11 +28,11 @@ import no.unit.nva.cognito.exception.BadGatewayException;
 import no.unit.nva.useraccessmanagement.exceptions.InvalidEntryInternalException;
 import no.unit.nva.useraccessmanagement.model.RoleDto;
 import no.unit.nva.useraccessmanagement.model.UserDto;
-import nva.commons.exceptions.ForbiddenException;
-import nva.commons.utils.Environment;
-import nva.commons.utils.aws.SecretsReader;
-import nva.commons.utils.log.LogUtils;
-import nva.commons.utils.log.TestAppender;
+import nva.commons.core.Environment;
+import nva.commons.logutils.LogUtils;
+import nva.commons.logutils.TestAppender;
+import nva.commons.secrets.ErrorReadingSecretException;
+import nva.commons.secrets.SecretsReader;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -127,8 +127,8 @@ public class UserApiClientTest {
 
     @Test
     public void createUserReturnsCreatedUserOnSuccess()
-        throws IOException, InterruptedException, ForbiddenException, InvalidEntryInternalException,
-               BadGatewayException {
+        throws IOException, InterruptedException, InvalidEntryInternalException,
+               BadGatewayException, ErrorReadingSecretException {
         when(httpResponse.body()).thenReturn(getValidJsonUser());
         when(httpResponse.statusCode()).thenReturn(SC_OK);
         when(httpClient.send(any(), any())).thenReturn(httpResponse);
@@ -161,7 +161,7 @@ public class UserApiClientTest {
         return objectMapper.writeValueAsString(createUser());
     }
 
-    private void prepareMocksWithSecret() throws ForbiddenException {
+    private void prepareMocksWithSecret() throws ErrorReadingSecretException {
         when(secretsReader.fetchSecret(anyString(), anyString())).thenReturn(THE_API_KEY);
     }
 

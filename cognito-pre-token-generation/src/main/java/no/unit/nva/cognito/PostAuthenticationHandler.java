@@ -1,26 +1,13 @@
 package no.unit.nva.cognito;
 
+import static java.util.Objects.nonNull;
+import static no.unit.nva.cognito.util.OrgNumberCleaner.removeCountryPrefix;
+import static nva.commons.core.StringUtils.isNotBlank;
 import com.amazonaws.services.cognitoidp.AWSCognitoIdentityProviderClient;
 import com.amazonaws.services.cognitoidp.model.AttributeType;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import no.unit.nva.cognito.model.CustomerResponse;
-import no.unit.nva.cognito.model.Event;
-import no.unit.nva.cognito.model.UserAttributes;
-import no.unit.nva.cognito.service.CustomerApi;
-import no.unit.nva.cognito.service.CustomerApiClient;
-import no.unit.nva.cognito.service.UserApiClient;
-import no.unit.nva.cognito.service.UserService;
-import no.unit.nva.useraccessmanagement.model.RoleDto;
-import no.unit.nva.useraccessmanagement.model.UserDto;
-import nva.commons.utils.Environment;
-import nva.commons.utils.JacocoGenerated;
-import nva.commons.utils.JsonUtils;
-import nva.commons.utils.aws.SecretsReader;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.net.http.HttpClient;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -30,10 +17,21 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
-import static java.util.Objects.nonNull;
-import static no.unit.nva.cognito.util.OrgNumberCleaner.removeCountryPrefix;
-import static nva.commons.utils.StringUtils.isEmpty;
+import no.unit.nva.cognito.model.CustomerResponse;
+import no.unit.nva.cognito.model.Event;
+import no.unit.nva.cognito.model.UserAttributes;
+import no.unit.nva.cognito.service.CustomerApi;
+import no.unit.nva.cognito.service.CustomerApiClient;
+import no.unit.nva.cognito.service.UserApiClient;
+import no.unit.nva.cognito.service.UserService;
+import no.unit.nva.useraccessmanagement.model.RoleDto;
+import no.unit.nva.useraccessmanagement.model.UserDto;
+import nva.commons.core.Environment;
+import nva.commons.core.JacocoGenerated;
+import nva.commons.core.JsonUtils;
+import nva.commons.secrets.SecretsReader;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class PostAuthenticationHandler implements RequestHandler<Map<String, Object>, Map<String, Object>> {
 
@@ -50,7 +48,6 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
     public static final String BIBSYS_HOST = "@bibsys.no";
     public static final String EMPTY_STRING = "";
     public static final int START_OF_STRING = 0;
-    private static final Logger logger = LoggerFactory.getLogger(PostAuthenticationHandler.class);
     public static final String TRAILING_BRACKET = "]";
     public static final char AFFILIATION_PART_SEPARATOR = '@';
     public static final String COMMA_SPACE = ", ";
@@ -58,6 +55,7 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
     public static final String APPLICATION_ROLES_MESSAGE = "applicationRoles: ";
     public static final String HOSTED_AFFILIATION_MESSAGE =
             "Overriding orgNumber({}) with hostedOrgNumber({}) and hostedAffiliation";
+    private static final Logger logger = LoggerFactory.getLogger(PostAuthenticationHandler.class);
     private final UserService userService;
     private final CustomerApi customerApi;
 
@@ -236,7 +234,7 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
     }
 
     private String extractAffiliation(String hostedAffiliation) {
-        if (!isEmpty(hostedAffiliation) && hostedAffiliation.contains(String.valueOf(AFFILIATION_PART_SEPARATOR)))  {
+        if (isNotBlank(hostedAffiliation) && hostedAffiliation.contains(String.valueOf(AFFILIATION_PART_SEPARATOR)))  {
             return hostedAffiliation.substring(START_OF_STRING, hostedAffiliation.indexOf(AFFILIATION_PART_SEPARATOR));
         } else {
             return EMPTY_STRING;

@@ -17,6 +17,7 @@ import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.core.Is.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -70,7 +71,7 @@ public class UserApiClientTest {
     @BeforeEach
     public void init() throws ErrorReadingSecretException {
         objectMapper = new ObjectMapper();
-        SecretsReader secretsReader = mockSecretsReader();
+
         Environment environment = mock(Environment.class);
         when(environment.readEnv(USER_API_SCHEME)).thenReturn(SAMPLE_API_SCHEME);
         when(environment.readEnv(USER_API_HOST)).thenReturn(SAMPLE_API_HOST);
@@ -79,17 +80,16 @@ public class UserApiClientTest {
         httpClient = mock(HttpClient.class);
         httpResponse = mock(HttpResponse.class);
 
+        SecretsReader secretsReader = mockSecretsReader();
         userApiClient = new UserApiClient(httpClient, new ObjectMapper(), secretsReader, environment);
     }
 
     @Test
     public void getUserReturnsUserOnValidUsername() throws Exception {
         httpResponse = successfulGetResponse();
-        when(httpClient.send(any(), any())).thenAnswer(invocation->httpResponse);
-
+        when(httpClient.send(any(), any())).thenAnswer(invocation -> httpResponse);
         Optional<UserDto> user = userApiClient.getUser(SAMPLE_USERNAME);
-
-        Assertions.assertTrue(user.isPresent());
+        assertTrue(user.isPresent());
     }
 
     @Test
@@ -98,7 +98,7 @@ public class UserApiClientTest {
         final TestAppender appender = LogUtils.getTestingAppender(UserApiClient.class);
         when(httpResponse.body()).thenReturn(GARBAGE_JSON);
         when(httpResponse.statusCode()).thenReturn(SC_OK);
-        when(httpClient.send(any(), any())).thenAnswer(invocation->httpResponse);
+        when(httpClient.send(any(), any())).thenAnswer(invocation -> httpResponse);
 
         Executable action = () -> userApiClient.getUser(SAMPLE_USERNAME);
 
@@ -112,7 +112,7 @@ public class UserApiClientTest {
         throws IOException, InterruptedException, BadGatewayException {
         final TestAppender logAppendeer = LogUtils.getTestingAppender(UserApiClient.class);
         when(httpResponse.statusCode()).thenReturn(SC_INTERNAL_SERVER_ERROR);
-        when(httpClient.send(any(), any())).thenAnswer(invocation->httpResponse);
+        when(httpClient.send(any(), any())).thenAnswer(invocation -> httpResponse);
 
         Executable action = () -> userApiClient.getUser(SAMPLE_USERNAME);
 
@@ -136,7 +136,7 @@ public class UserApiClientTest {
         throws IOException, InterruptedException, InvalidEntryInternalException, BadGatewayException {
         when(httpResponse.body()).thenReturn(getValidJsonUser());
         when(httpResponse.statusCode()).thenReturn(SC_OK);
-        when(httpClient.send(any(), any())).thenAnswer(invocation->httpResponse);
+        when(httpClient.send(any(), any())).thenAnswer(invocation -> httpResponse);
 
         UserDto requestUser = sampleUser();
 
@@ -181,7 +181,7 @@ public class UserApiClientTest {
     public void updateUserThrowsBadGatewayExceptionIfResponseIsNotSuccessful()
         throws IOException, InterruptedException {
         when(httpClient.send(any(HttpRequest.class), any(BodyHandler.class)))
-            .thenAnswer(invocation->mockResponse(HttpURLConnection.HTTP_UNAUTHORIZED));
+            .thenAnswer(invocation -> mockResponse(HttpURLConnection.HTTP_UNAUTHORIZED));
 
         Executable action = () -> userApiClient.updateUser(sampleUser());
         assertThrows(BadGatewayException.class, action);

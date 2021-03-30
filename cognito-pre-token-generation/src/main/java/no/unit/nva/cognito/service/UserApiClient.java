@@ -100,12 +100,13 @@ public class UserApiClient implements UserApi {
         }
     }
 
+    @Override
     public void updateUser(UserDto user) throws IOException, InterruptedException {
         HttpRequest request = updateUserRequest(user);
         HttpResponse<String> response = sendHttpRequest(request);
 
         if (HttpURLConnection.HTTP_ACCEPTED != response.statusCode()) {
-            logResponseError(response);
+            logFailedResponseError(response);
             throw new BadGatewayException(UPDATE_USER_FAILURE);
         }
     }
@@ -119,8 +120,13 @@ public class UserApiClient implements UserApi {
                    .orElseThrow();
     }
 
-    private void logResponseError(HttpResponse<String> response) {
+    private void logFailedResponseError(HttpResponse<String> response) {
         logger.error(UPDATE_USER_FAILURE_RESPONSE_LOGGING, response.statusCode(), response.body());
+    }
+
+    private BadGatewayException handleFailure(Failure<HttpResponse<String>> failure, String errorMessage) {
+        logger.error(errorMessage, failure.getException());
+        return new BadGatewayException(errorMessage, failure.getException());
     }
 
     private Builder authorizationHeader(Builder builder) {
@@ -157,14 +163,14 @@ public class UserApiClient implements UserApi {
             attempt((Callable<URI>) this::formUri)
                 .map(uri -> buildCreateUserRequest(uri, user))
                 .map(this::sendHttpRequest)
-                .orElseThrow(fail -> logResponseError(fail, COULD_NOT_CREATE_USER_ERROR_MESSAGE));
+                .orElseThrow(fail -> handleFailure(fail, COULD_NOT_CREATE_USER_ERROR_MESSAGE));
     }
 
     private HttpResponse<String> fetchUserInformation(String username) {
         return attempt(() -> formUri(username))
                    .map(this::buildGetUserRequest)
                    .map(this::sendHttpRequest)
-                   .orElseThrow(fail -> logResponseError(fail, COULD_NOT_FETCH_USER_ERROR_MESSAGE));
+                   .orElseThrow(fail -> handleFailure(fail, COULD_NOT_FETCH_USER_ERROR_MESSAGE));
     }
 
     private UserDto tryParsingUser(HttpResponse<String> response) {
@@ -179,11 +185,6 @@ public class UserApiClient implements UserApi {
     private IllegalStateException logErrorParsingUserInformation(Failure<UserDto> failure) {
         logger.error(ERROR_PARSING_USER_INFORMATION, failure.getException());
         return new IllegalStateException(USER_CANNOT_BE_PARSED_ERROR);
-    }
-
-    private BadGatewayException logResponseError(Failure<HttpResponse<String>> failure, String errorMessage) {
-        logger.error(errorMessage, failure.getException());
-        return new BadGatewayException(errorMessage, failure.getException());
     }
 
     private UserDto parseUser(HttpResponse<String> response)

@@ -34,6 +34,10 @@ public class UserApiMock implements UserApi {
         }
     }
 
+    @Override
+    public void updateUser(UserDto user) {
+    }
+
     private UserDto updateRolesWithAccessRights(UserDto user) {
         List<RoleDto> updatedRoles = updateRoles(user.getRoles());
         return attempt(() -> user.copy().withRoles(updatedRoles).build()).toOptional().orElseThrow();

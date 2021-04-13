@@ -3,6 +3,7 @@ package no.unit.nva.cognito;
 import static java.util.Objects.nonNull;
 import static no.unit.nva.cognito.util.OrgNumberCleaner.removeCountryPrefix;
 import static nva.commons.core.StringUtils.isNotBlank;
+import static nva.commons.core.attempt.Try.attempt;
 import com.amazonaws.services.cognitoidp.AWSCognitoIdentityProviderClient;
 import com.amazonaws.services.cognitoidp.model.AttributeType;
 import com.amazonaws.services.lambda.runtime.Context;
@@ -23,12 +24,14 @@ import no.unit.nva.cognito.model.UserAttributes;
 import no.unit.nva.cognito.service.CustomerApi;
 import no.unit.nva.cognito.service.CustomerApiClient;
 import no.unit.nva.cognito.service.UserApiClient;
+import no.unit.nva.cognito.service.UserDetails;
 import no.unit.nva.cognito.service.UserService;
 import no.unit.nva.useraccessmanagement.model.RoleDto;
 import no.unit.nva.useraccessmanagement.model.UserDto;
 import nva.commons.core.Environment;
 import nva.commons.core.JacocoGenerated;
 import nva.commons.core.JsonUtils;
+import nva.commons.core.attempt.Try;
 import nva.commons.secrets.SecretsReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,7 +57,7 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
     public static final String COMMA = ",";
     public static final String APPLICATION_ROLES_MESSAGE = "applicationRoles: ";
     public static final String HOSTED_AFFILIATION_MESSAGE =
-            "Overriding orgNumber({}) with hostedOrgNumber({}) and hostedAffiliation";
+        "Overriding orgNumber({}) with hostedOrgNumber({}) and hostedAffiliation";
     private static final Logger logger = LoggerFactory.getLogger(PostAuthenticationHandler.class);
     private final UserService userService;
     private final CustomerApi customerApi;
@@ -76,22 +79,10 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
 
         String userPoolId = event.getUserPoolId();
         String userName = event.getUserName();
+        UserDetails userDetails = extractUserDetails(event);
+        UserDto user = getAndUpdateUserDetails(userDetails);
 
-        UserAttributes userAttributes = event.getRequest().getUserAttributes();
-
-        if (userIsBibsysHosted(userAttributes)) {
-            logger.info(HOSTED_AFFILIATION_MESSAGE, userAttributes.getOrgNumber(), userAttributes.getHostedOrgNumber());
-            userAttributes.setOrgNumber(userAttributes.getHostedOrgNumber());
-            userAttributes.setAffiliation(extractAffiliationFromHostedUSer(userAttributes.getHostedAffiliation()));
-        }
-        String orgNumber = userAttributes.getOrgNumber();
-        Optional<CustomerResponse> customer = mapOrgNumberToCustomer(removeCountryPrefix(orgNumber));
-        Optional<String> customerId = customer.map(CustomerResponse::getCustomerId);
-        Optional<String> cristinId = customer.map(CustomerResponse::getCristinId);
-
-        UserDto user = getUserFromCatalogueOrAddUser(userAttributes, customerId);
-
-        updateUserDetailsInUserPool(userPoolId, userName, userAttributes, user, cristinId);
+        updateUserDetailsInUserPool(userPoolId, userName, userDetails, user);
 
         logger.info("handleRequest took {} ms", System.currentTimeMillis() - start);
         return input;
@@ -127,6 +118,27 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
             new Environment());
     }
 
+    private UserDetails extractUserDetails(Event event) {
+        UserAttributes userAttributes = event.getRequest().getUserAttributes();
+        if (userIsBibsysHosted(userAttributes)) {
+            injectInformationForBibsysHostedCustomer(userAttributes);
+        }
+        return createUserDetails(userAttributes);
+    }
+
+    private void injectInformationForBibsysHostedCustomer(UserAttributes userAttributes) {
+        logger.info(HOSTED_AFFILIATION_MESSAGE, userAttributes.getOrgNumber(), userAttributes.getHostedOrgNumber());
+        userAttributes.setOrgNumber(userAttributes.getHostedOrgNumber());
+        userAttributes.setAffiliation(extractAffiliationFromHostedUSer(userAttributes.getHostedAffiliation()));
+    }
+
+    private UserDetails createUserDetails(UserAttributes userAttributes) {
+        return Optional.ofNullable(userAttributes.getOrgNumber())
+                   .flatMap(orgNum -> mapOrgNumberToCustomer(removeCountryPrefix(orgNum)))
+                   .map(customer -> new UserDetails(userAttributes, customer))
+                   .orElse(new UserDetails(userAttributes));
+    }
+
     /**
      * Using ObjectMapper to convert input to Event because we are interested in only some input properties but have no
      * way of telling Lambda's JSON parser to ignore the rest.
@@ -140,46 +152,36 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
 
     private void updateUserDetailsInUserPool(String userPoolId,
                                              String userName,
-                                             UserAttributes userAttributes,
-                                             UserDto user,
-                                             Optional<String> cristinId) {
+                                             UserDetails userDetails,
+                                             UserDto user) {
         long start = System.currentTimeMillis();
-        List<AttributeType> cognitoUserAttributes = createUserAttributes(userAttributes, user, cristinId);
-        userService.updateUserAttributes(
-            userPoolId,
-            userName,
-            cognitoUserAttributes);
+        List<AttributeType> cognitoUserAttributes = createUserAttributes(userDetails, user);
+        userService.updateUserAttributes(userPoolId, userName, cognitoUserAttributes);
         logger.info("updateUserDetailsInUserPool took {} ms", System.currentTimeMillis() - start);
-
     }
 
-    private UserDto getUserFromCatalogueOrAddUser(UserAttributes userAttributes, Optional<String> customerId) {
-        return userService.getOrCreateUser(
-            userAttributes.getFeideId(),
-            userAttributes.getGivenName(),
-            userAttributes.getFamilyName(),
-            customerId,
-            userAttributes.getAffiliation()
-        );
+    private UserDto getAndUpdateUserDetails(UserDetails userDetails) {
+        return userService.getUser(userDetails.getFeideId())
+                   .map(attempt(user -> userService.updateUser(user, userDetails)))
+                   .map(Try::orElseThrow)
+                   .orElseGet(() -> userService.createUser(userDetails));
     }
 
     private Optional<CustomerResponse> mapOrgNumberToCustomer(String orgNumber) {
         return customerApi.getCustomer(orgNumber);
     }
 
-    private List<AttributeType> createUserAttributes(UserAttributes userAttributes,
-                                                     UserDto user,
-                                                     Optional<String> cristinId) {
+    private List<AttributeType> createUserAttributes(UserDetails userDetails, UserDto user) {
         List<AttributeType> userAttributeTypes = new ArrayList<>();
 
         if (user.getInstitution() != null) {
             userAttributeTypes.add(toAttributeType(CUSTOM_CUSTOMER_ID, user.getInstitution()));
         }
-        if (cristinId.isPresent()) {
-            userAttributeTypes.add(toAttributeType(CUSTOM_CRISTIN_ID, cristinId.get()));
-        }
+        userDetails.getCristinId()
+            .ifPresent(cristinId -> userAttributeTypes.add(toAttributeType(CUSTOM_CRISTIN_ID, cristinId)));
+
         userAttributeTypes.add(toAttributeType(CUSTOM_APPLICATION, NVA));
-        userAttributeTypes.add(toAttributeType(CUSTOM_IDENTIFIERS, FEIDE_PREFIX + userAttributes.getFeideId()));
+        userAttributeTypes.add(toAttributeType(CUSTOM_IDENTIFIERS, FEIDE_PREFIX + userDetails.getFeideId()));
 
         String applicationRoles = applicationRolesString(user);
         userAttributeTypes.add(toAttributeType(CUSTOM_APPLICATION_ROLES, applicationRoles));
@@ -213,28 +215,28 @@ public class PostAuthenticationHandler implements RequestHandler<Map<String, Obj
 
     private <T> String toCsv(Collection<T> roles, Function<T, String> stringRepresentation) {
         return roles
-            .stream()
-            .map(stringRepresentation)
-            .collect(Collectors.joining(COMMA_DELIMITER));
+                   .stream()
+                   .map(stringRepresentation)
+                   .collect(Collectors.joining(COMMA_DELIMITER));
     }
 
     private boolean userIsBibsysHosted(UserAttributes userAttributes) {
         return userAttributes.getFeideId().endsWith(BIBSYS_HOST)
-                && nonNull(userAttributes.getHostedOrgNumber());
+               && nonNull(userAttributes.getHostedOrgNumber());
     }
 
     private String extractAffiliationFromHostedUSer(String hostedAffiliation) {
 
-        List<String> shortenedAffiliations =  Arrays.stream(hostedAffiliation.split(COMMA))
-                .map(this::extractAffiliation)
-                .map(String::strip)
-                .collect(Collectors.toList());
+        List<String> shortenedAffiliations = Arrays.stream(hostedAffiliation.split(COMMA))
+                                                 .map(this::extractAffiliation)
+                                                 .map(String::strip)
+                                                 .collect(Collectors.toList());
 
         return String.join(COMMA_SPACE, shortenedAffiliations).concat(TRAILING_BRACKET);
     }
 
     private String extractAffiliation(String hostedAffiliation) {
-        if (isNotBlank(hostedAffiliation) && hostedAffiliation.contains(String.valueOf(AFFILIATION_PART_SEPARATOR)))  {
+        if (isNotBlank(hostedAffiliation) && hostedAffiliation.contains(String.valueOf(AFFILIATION_PART_SEPARATOR))) {
             return hostedAffiliation.substring(START_OF_STRING, hostedAffiliation.indexOf(AFFILIATION_PART_SEPARATOR));
         } else {
             return EMPTY_STRING;

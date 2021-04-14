@@ -42,6 +42,7 @@ import no.unit.nva.useraccessmanagement.model.RoleDto;
 import no.unit.nva.useraccessmanagement.model.UserDto;
 import nva.commons.core.JsonUtils;
 import nva.commons.core.SingletonCollector;
+import org.javers.common.collections.Lists;
 import org.javers.core.Javers;
 import org.javers.core.JaversBuilder;
 import org.junit.jupiter.api.BeforeEach;
@@ -190,7 +191,7 @@ public class PostAuthenticationHandlerTest {
 
     @Test
     public void
-        handlerReturnsUserWithoutCreatorRoleWhenUserHadCreatorRoleButNowHasAffiliationThatDoesNotGiveThemTheRole()
+    handlerReturnsUserWithoutCreatorRoleWhenUserHadCreatorRoleButNowHasAffiliationThatDoesNotGiveThemTheRole()
         throws InvalidEntryInternalException {
         prepareMocksWithExistingUser(createUserWithInstitutionAndCreatorRole());
         var currentUser = getUserFromMock();
@@ -207,20 +208,22 @@ public class PostAuthenticationHandlerTest {
     @Test
     public void handlerReturnsUserWithManuallyAssignedRolesWhenAutomaticallyAssignedRolesAreRemoved()
         throws InvalidEntryInternalException {
-        String manuallyAssignedRole = UUID.randomUUID().toString();
+        String manuallyAssignedRole = randomRoleName();
         UserDto existingUser = createUserWithCustomRole(manuallyAssignedRole);
         prepareMocksWithExistingUser(existingUser);
 
-        var currentUser = getUserFromMock();
-        List<String> rolesBeforeLogin = extractRoleNames(currentUser);
-        assertThat(rolesBeforeLogin, hasItem(manuallyAssignedRole));
-        assertThat(rolesBeforeLogin, hasItem(CREATOR));
+        UserDto currentUser = getUserFromMock();
+        final List<String> rolesBeforeLogin = Lists.immutableCopyOf(extractRoleNames(currentUser));
 
         Map<String, Object> requestEvent = createRequestEventWithEmptyAffiliation();
         handler.handleRequest(requestEvent, mockContext);
         UserDto createdUser = getUserFromMock();
 
         List<String> rolesAfterLogin = extractRoleNames(createdUser);
+
+        assertThat(rolesBeforeLogin, hasItem(manuallyAssignedRole));
+        assertThat(rolesBeforeLogin, hasItem(CREATOR));
+
         String oldAndNewRolesDiff = compareAssignedRoles(rolesBeforeLogin, rolesAfterLogin);
         assertThat(oldAndNewRolesDiff, rolesAfterLogin, hasItem(manuallyAssignedRole));
         assertThat(oldAndNewRolesDiff, rolesAfterLogin, not(hasItem(CREATOR)));
@@ -244,7 +247,8 @@ public class PostAuthenticationHandlerTest {
     }
 
     @Test
-    public void handleRequestCreatesUserWithUserRoleWhenUserIsFeideHostedUser() throws InvalidEntryInternalException {
+    public void handleRequestReturnsNewUserWithUserRoleWhenUserIsFeideHostedUser()
+        throws InvalidEntryInternalException {
         mockCustomerApiWithNoCustomer();
 
         Map<String, Object> requestEvent = createRequestEventWithCompleteBibsysHostedUser();
@@ -272,6 +276,10 @@ public class PostAuthenticationHandlerTest {
         UserDto createdUser = getUserFromMock();
         assertEquals(expected, createdUser);
         assertEquals(requestEvent, responseEvent);
+    }
+
+    private String randomRoleName() {
+        return UUID.randomUUID().toString();
     }
 
     private String compareAssignedRoles(List<String> rolesBeforeLogin, List<String> rolesAfterLogin) {

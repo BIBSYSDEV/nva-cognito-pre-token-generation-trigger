@@ -5,8 +5,10 @@ import static no.unit.nva.cognito.service.UserApiMock.SAMPLE_ACCESS_RIGHTS;
 import static no.unit.nva.cognito.service.UserApiMock.SECOND_ACCESS_RIGHT;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsEqual.equalTo;
+import static org.hamcrest.core.IsNot.not;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -25,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import no.unit.nva.cognito.model.CustomerResponse;
@@ -32,7 +35,6 @@ import no.unit.nva.cognito.model.Event;
 import no.unit.nva.cognito.model.Request;
 import no.unit.nva.cognito.model.UserAttributes;
 import no.unit.nva.cognito.service.CustomerApi;
-import no.unit.nva.cognito.service.UserApi;
 import no.unit.nva.cognito.service.UserApiMock;
 import no.unit.nva.cognito.service.UserService;
 import no.unit.nva.useraccessmanagement.exceptions.InvalidEntryInternalException;
@@ -40,6 +42,9 @@ import no.unit.nva.useraccessmanagement.model.RoleDto;
 import no.unit.nva.useraccessmanagement.model.UserDto;
 import nva.commons.core.JsonUtils;
 import nva.commons.core.SingletonCollector;
+import org.javers.common.collections.Lists;
+import org.javers.core.Javers;
+import org.javers.core.JaversBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.invocation.InvocationOnMock;
@@ -52,7 +57,7 @@ public class PostAuthenticationHandlerTest {
 
     public static final String SAMPLE_AFFILIATION = "[member, employee, staff]";
     public static final String SAMPLE_HOSTED_AFFILIATION =
-            "[member@zs.bibsys.no, employee@zs.bibsys.no, staff@zs.bibsys.no]";
+        "[member@zs.bibsys.no, employee@zs.bibsys.no, staff@zs.bibsys.no]";
     public static final String SAMPLE_HOSTED_FEIDE_ID = "feideId@bibsys.no";
 
     public static final String EMPTY_AFFILIATION = "[]";
@@ -68,9 +73,11 @@ public class PostAuthenticationHandlerTest {
     public static final String USER = "User";
     public static final String SAMPLE_CRISTIN_ID = "http://cristin.id";
     public static final AdminUpdateUserAttributesResult UNUSED_RESULT = null;
+    public static final int ONLY_CREATOR_ROLE = 1;
+    public static final Javers JAVERS = JaversBuilder.javers().build();
     private final AtomicReference<List<AttributeType>> attributeTypesBuffer = new AtomicReference<>();
     private CustomerApi customerApi;
-    private UserApi userApi;
+    private UserApiMock userApi;
     private UserService userService;
     private PostAuthenticationHandler handler;
     private AWSCognitoIdentityProvider awsCognitoIdentityProvider;
@@ -95,10 +102,10 @@ public class PostAuthenticationHandlerTest {
 
     @Test
     public void handleRequestUsesExistingUserWhenUserIsFound() throws InvalidEntryInternalException {
-        prepareMocksWithExistingCustomer();
-        prepareMocksWithExistingUser();
+        mockCustomerApiWithExistingCustomer();
+        prepareMocksWithExistingUser(createUserWithInstitutionAndCreatorRole());
 
-        Map<String, Object> requestEvent = createRequestEvent();
+        Map<String, Object> requestEvent = createRequestEventWithInstitutionAndEduPersonAffiliation();
         final Map<String, Object> responseEvent = handler.handleRequest(requestEvent, mock(Context.class));
 
         verifyNumberOfAttributeUpdatesInCognito(1);
@@ -111,9 +118,9 @@ public class PostAuthenticationHandlerTest {
 
     @Test
     public void handleRequestCreatesUserWithUserRoleWhenNoCustomerIsFound() throws InvalidEntryInternalException {
-        prepareMocksWithNoCustomer();
+        mockCustomerApiWithNoCustomer();
 
-        Map<String, Object> requestEvent = createRequestEvent();
+        Map<String, Object> requestEvent = createRequestEventWithInstitutionAndEduPersonAffiliation();
         final Map<String, Object> responseEvent = handler.handleRequest(requestEvent, mock(Context.class));
 
         verifyNumberOfAttributeUpdatesInCognito(1);
@@ -126,9 +133,9 @@ public class PostAuthenticationHandlerTest {
 
     @Test
     public void handleRequestCreatesUserWithCreatorRoleForAffiliatedUser() throws InvalidEntryInternalException {
-        prepareMocksWithExistingCustomer();
+        mockCustomerApiWithExistingCustomer();
 
-        Map<String, Object> requestEvent = createRequestEvent();
+        Map<String, Object> requestEvent = createRequestEventWithInstitutionAndEduPersonAffiliation();
         mockContext = mock(Context.class);
         final Map<String, Object> responseEvent = handler.handleRequest(requestEvent, mockContext);
 
@@ -143,8 +150,8 @@ public class PostAuthenticationHandlerTest {
     @Test
     public void handleRequestAddsAccessRightsAttributesToUserPoolAttributesForUserWithRole()
         throws InvalidEntryInternalException {
-        prepareMocksWithExistingUser();
-        Map<String, Object> requestEvent = createRequestEvent();
+        prepareMocksWithExistingUser(createUserWithInstitutionAndCreatorRole());
+        Map<String, Object> requestEvent = createRequestEventWithInstitutionAndEduPersonAffiliation();
         handler.handleRequest(requestEvent, mockContext);
         verifyNumberOfAttributeUpdatesInCognito(1);
 
@@ -157,8 +164,8 @@ public class PostAuthenticationHandlerTest {
     @Test
     public void handleRequestAddsAccessRightsAsCsvWhenAccessRightsAreMoreThanOne()
         throws InvalidEntryInternalException {
-        prepareMocksWithExistingUser();
-        Map<String, Object> requestEvent = createRequestEvent();
+        prepareMocksWithExistingUser(createUserWithInstitutionAndCreatorRole());
+        Map<String, Object> requestEvent = createRequestEventWithInstitutionAndEduPersonAffiliation();
         handler.handleRequest(requestEvent, mockContext);
         verifyNumberOfAttributeUpdatesInCognito(1);
 
@@ -169,7 +176,7 @@ public class PostAuthenticationHandlerTest {
 
     @Test
     public void handleRequestCreatesUserWithCreatorRoleForNonAffiliatedUser() throws InvalidEntryInternalException {
-        prepareMocksWithExistingCustomer();
+        mockCustomerApiWithExistingCustomer();
 
         Map<String, Object> requestEvent = createRequestEventWithEmptyAffiliation();
         final Map<String, Object> responseEvent = handler.handleRequest(requestEvent, mock(Context.class));
@@ -182,6 +189,117 @@ public class PostAuthenticationHandlerTest {
         assertEquals(requestEvent, responseEvent);
     }
 
+    @Test
+    public void handlerReturnsUserWithoutCreatorRoleWhenUserHadCreatorRoleButNowHasAffiliationNotProvidingTheRole()
+        throws InvalidEntryInternalException {
+        prepareMocksWithExistingUser(createUserWithInstitutionAndCreatorRole());
+        var currentUser = getUserFromMock();
+        List<String> rolesBeforeLogin = extractRoleNames(currentUser);
+        assertThat(rolesBeforeLogin, hasItem(CREATOR));
+        Map<String, Object> requestEvent = createRequestEventWithEmptyAffiliation();
+        handler.handleRequest(requestEvent, mockContext);
+        UserDto createdUser = getUserFromMock();
+        List<String> rolesAfterLogin = extractRoleNames(createdUser);
+        String oldAndNewRolesDiff = compareAssignedRoles(rolesBeforeLogin, rolesAfterLogin);
+        assertThat(oldAndNewRolesDiff, rolesAfterLogin, not(hasItem(CREATOR)));
+    }
+
+    @Test
+    public void handlerReturnsUserWithManuallyAssignedRolesWhenAutomaticallyAssignedRolesAreRemoved()
+        throws InvalidEntryInternalException {
+        String manuallyAssignedRole = randomRoleName();
+        UserDto existingUser = createUserWithCustomRole(manuallyAssignedRole);
+        prepareMocksWithExistingUser(existingUser);
+
+        UserDto currentUser = getUserFromMock();
+        final List<String> rolesBeforeLogin = Lists.immutableCopyOf(extractRoleNames(currentUser));
+
+        Map<String, Object> requestEvent = createRequestEventWithEmptyAffiliation();
+        handler.handleRequest(requestEvent, mockContext);
+        UserDto createdUser = getUserFromMock();
+
+        List<String> rolesAfterLogin = extractRoleNames(createdUser);
+
+        assertThat(rolesBeforeLogin, hasItem(manuallyAssignedRole));
+        assertThat(rolesBeforeLogin, hasItem(CREATOR));
+
+        String oldAndNewRolesDiff = compareAssignedRoles(rolesBeforeLogin, rolesAfterLogin);
+        assertThat(oldAndNewRolesDiff, rolesAfterLogin, hasItem(manuallyAssignedRole));
+        assertThat(oldAndNewRolesDiff, rolesAfterLogin, not(hasItem(CREATOR)));
+    }
+
+    @Test
+    public void handlerAddsCreatorRoleFromUserThatDidNotHaveCreatorRoleButNowHasAffiliationThatGivesThemTheRole()
+        throws InvalidEntryInternalException {
+        prepareMocksWithExistingUser(createUserWithInstitutionAndOnlyUserRole());
+        UserDto currentUser = getUserFromMock();
+        List<String> rolesBeforeLogin = extractRoleNames(currentUser);
+        assertThat(rolesBeforeLogin, not(hasItem(CREATOR)));
+        Map<String, Object> requestEvent = createRequestEventWithInstitutionAndEduPersonAffiliation();
+        handler.handleRequest(requestEvent, mockContext);
+        UserDto createdUser = getUserFromMock();
+
+        List<String> rolesAfterLogin = extractRoleNames(createdUser);
+
+        String oldAndNewRolesDiff = compareAssignedRoles(rolesBeforeLogin, rolesAfterLogin);
+        assertThat(oldAndNewRolesDiff, rolesAfterLogin, hasItem(CREATOR));
+    }
+
+    @Test
+    public void handleRequestReturnsNewUserWithUserRoleWhenUserIsFeideHostedUser()
+        throws InvalidEntryInternalException {
+        mockCustomerApiWithNoCustomer();
+
+        Map<String, Object> requestEvent = createRequestEventWithCompleteBibsysHostedUser();
+        final Map<String, Object> responseEvent = handler.handleRequest(requestEvent, mock(Context.class));
+
+        verifyNumberOfAttributeUpdatesInCognito(1);
+
+        UserDto expected = hostedUserWithUserRole();
+        UserDto createdUser = getUserFromMock();
+        assertEquals(expected, createdUser);
+        assertEquals(requestEvent, responseEvent);
+    }
+
+    @Test
+    public void handleRequestReturnsUserWithUserRoleWhenUserIsFeideHostedUserAndUserMissingAffiliation()
+        throws InvalidEntryInternalException {
+        mockCustomerApiWithNoCustomer();
+
+        Map<String, Object> requestEvent = createRequestEventWithIncompleteBibsysHostedUser();
+        final Map<String, Object> responseEvent = handler.handleRequest(requestEvent, mock(Context.class));
+
+        verifyNumberOfAttributeUpdatesInCognito(1);
+
+        UserDto expected = hostedUserWithUserRole();
+        UserDto createdUser = getUserFromMock();
+        assertEquals(expected, createdUser);
+        assertEquals(requestEvent, responseEvent);
+    }
+
+    private String randomRoleName() {
+        return UUID.randomUUID().toString();
+    }
+
+    private String compareAssignedRoles(List<String> rolesBeforeLogin, List<String> rolesAfterLogin) {
+        return JAVERS.compare(rolesBeforeLogin, rolesAfterLogin).prettyPrint();
+    }
+
+    private UserDto createUserWithCustomRole(String manuallyAssignedRole) throws InvalidEntryInternalException {
+        UserDto sampleUser = createUserWithInstitutionAndCreatorRole();
+        List<RoleDto> roles = sampleUser.getRoles();
+
+        roles.add(createRole(manuallyAssignedRole));
+        return userWithInstitution(userWithRoles(roles));
+    }
+
+    private List<String> extractRoleNames(UserDto currentUser) {
+        return currentUser.getRoles()
+                   .stream()
+                   .map(RoleDto::getRoleName)
+                   .collect(Collectors.toList());
+    }
+
     private Set<String> toSet(String csv) {
         String[] values = csv.split(PostAuthenticationHandler.COMMA_DELIMITER);
         return Arrays.stream(values).collect(Collectors.toSet());
@@ -189,10 +307,10 @@ public class PostAuthenticationHandlerTest {
 
     private String extractAccessRightsFromUserAttributes() {
         return attributeTypesBuffer.get()
-            .stream()
-            .filter(attr -> attr.getName().equals(PostAuthenticationHandler.CUSTOM_APPLICATION_ACCESS_RIGHTS))
-            .map(AttributeType::getValue)
-            .collect(SingletonCollector.collect());
+                   .stream()
+                   .filter(attr -> attr.getName().equals(PostAuthenticationHandler.CUSTOM_APPLICATION_ACCESS_RIGHTS))
+                   .map(AttributeType::getValue)
+                   .collect(SingletonCollector.collect());
     }
 
     private AWSCognitoIdentityProvider mockAwsIdentityProvider() {
@@ -217,16 +335,17 @@ public class PostAuthenticationHandlerTest {
         return userApi.getUser(SAMPLE_FEIDE_ID).get();
     }
 
-    private void prepareMocksWithExistingUser() throws InvalidEntryInternalException {
-        userApi.createUser(createUserWithInstitutionAndCreatorRole());
+    private UserDto prepareMocksWithExistingUser(UserDto userDto) {
+        userApi.createUser(userDto);
+        return userDto;
     }
 
-    private void prepareMocksWithExistingCustomer() {
-        when(customerApi.getCustomer(anyString())).thenReturn(Optional.of(new CustomerResponse(SAMPLE_CUSTOMER_ID,
-            SAMPLE_CRISTIN_ID)));
+    private void mockCustomerApiWithExistingCustomer() {
+        when(customerApi.getCustomer(anyString()))
+            .thenReturn(Optional.of(new CustomerResponse(SAMPLE_CUSTOMER_ID, SAMPLE_CRISTIN_ID)));
     }
 
-    private void prepareMocksWithNoCustomer() {
+    private void mockCustomerApiWithNoCustomer() {
         when(customerApi.getCustomer(anyString())).thenReturn(Optional.empty());
     }
 
@@ -238,11 +357,11 @@ public class PostAuthenticationHandlerTest {
 
     private UserDto userWithRoles(List<RoleDto> roles) throws InvalidEntryInternalException {
         return UserDto.newBuilder()
-            .withUsername(SAMPLE_FEIDE_ID)
-            .withGivenName(SAMPLE_GIVEN_NAME)
-            .withFamilyName(SAMPLE_FAMILY_NAME)
-            .withRoles(roles)
-            .build();
+                   .withUsername(SAMPLE_FEIDE_ID)
+                   .withGivenName(SAMPLE_GIVEN_NAME)
+                   .withFamilyName(SAMPLE_FAMILY_NAME)
+                   .withRoles(roles)
+                   .build();
     }
 
     private UserDto createUserWithInstitutionAndCreatorRole() throws InvalidEntryInternalException {
@@ -252,11 +371,11 @@ public class PostAuthenticationHandlerTest {
         return userWithInstitution(userWithRoles(roles));
     }
 
-    private RoleDto createRole(String creator) throws InvalidEntryInternalException {
+    private RoleDto createRole(String roleName) throws InvalidEntryInternalException {
         return RoleDto.newBuilder()
-            .withName(creator)
-            .withAccessRights(SAMPLE_ACCESS_RIGHTS)
-            .build();
+                   .withName(roleName)
+                   .withAccessRights(SAMPLE_ACCESS_RIGHTS)
+                   .build();
     }
 
     private UserDto createUserWithInstitutionAndOnlyUserRole() throws InvalidEntryInternalException {
@@ -269,7 +388,7 @@ public class PostAuthenticationHandlerTest {
         return user.copy().withInstitution(SAMPLE_CUSTOMER_ID).build();
     }
 
-    private Map<String, Object> createRequestEvent() {
+    private Map<String, Object> createRequestEventWithInstitutionAndEduPersonAffiliation() {
         UserAttributes userAttributes = new UserAttributes();
         userAttributes.setFeideId(SAMPLE_FEIDE_ID);
         userAttributes.setOrgNumber(SAMPLE_ORG_NUMBER);
@@ -330,11 +449,11 @@ public class PostAuthenticationHandlerTest {
         List<RoleDto> roles = new ArrayList<>();
         roles.add(createRole(USER));
         return UserDto.newBuilder()
-                .withUsername(SAMPLE_HOSTED_FEIDE_ID)
-                .withGivenName(SAMPLE_GIVEN_NAME)
-                .withFamilyName(SAMPLE_FAMILY_NAME)
-                .withRoles(roles)
-                .build();
+                   .withUsername(SAMPLE_HOSTED_FEIDE_ID)
+                   .withGivenName(SAMPLE_GIVEN_NAME)
+                   .withFamilyName(SAMPLE_FAMILY_NAME)
+                   .withRoles(roles)
+                   .build();
     }
 
     private Map<String, Object> createRequestEventWithIncompleteBibsysHostedUser() {
@@ -354,37 +473,5 @@ public class PostAuthenticationHandlerTest {
         event.setRequest(request);
 
         return JsonUtils.objectMapper.convertValue(event, Map.class);
-    }
-
-
-    @Test
-    public void handleRequestCreatesUserWithUserRoleWhenUserIsFeideHostedUser() throws InvalidEntryInternalException {
-        prepareMocksWithNoCustomer();
-
-        Map<String, Object> requestEvent = createRequestEventWithCompleteBibsysHostedUser();
-        final Map<String, Object> responseEvent = handler.handleRequest(requestEvent, mock(Context.class));
-
-        verifyNumberOfAttributeUpdatesInCognito(1);
-
-        UserDto expected = hostedUserWithUserRole();
-        UserDto createdUser = getUserFromMock();
-        assertEquals(expected, createdUser);
-        assertEquals(requestEvent, responseEvent);
-    }
-
-    @Test
-    public void handleRequestCreatesUserWithUserRoleWhenUserIsFeideHostedUserAndUserMissingAffiliation()
-            throws InvalidEntryInternalException {
-        prepareMocksWithNoCustomer();
-
-        Map<String, Object> requestEvent = createRequestEventWithIncompleteBibsysHostedUser();
-        final Map<String, Object> responseEvent = handler.handleRequest(requestEvent, mock(Context.class));
-
-        verifyNumberOfAttributeUpdatesInCognito(1);
-
-        UserDto expected = hostedUserWithUserRole();
-        UserDto createdUser = getUserFromMock();
-        assertEquals(expected, createdUser);
-        assertEquals(requestEvent, responseEvent);
     }
 }

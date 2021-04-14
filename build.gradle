@@ -48,7 +48,7 @@ allprojects {
         implementation group: 'com.fasterxml.jackson.core', name: 'jackson-annotations', version: jacksonVersion
         implementation group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-jsr310', version: jacksonVersion
         implementation group: 'org.slf4j', name: 'slf4j-api', version: '1.8.0-beta4'
-        implementation group: 'com.amazonaws', name: 'aws-lambda-java-core', version: '1.2.0'
+        implementation group: 'com.amazonaws', name: 'aws-lambda-java-core', version: '1.2.1'
         implementation group: 'com.amazonaws', name: 'aws-java-sdk-lambda', version: project.ext.awsSdkVersion
         implementation group: 'com.amazonaws', name: 'aws-java-sdk-cognitoidp', version: project.ext.awsSdkVersion
         implementation group: 'org.apache.httpcomponents', name: 'httpclient', version: '4.5.9'

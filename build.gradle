@@ -50,7 +50,7 @@ allprojects {
         implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: project.ext.jacksonVersion
         implementation group: 'com.fasterxml.jackson.core', name: 'jackson-annotations', version: project.ext.jacksonVersion
         implementation group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-jsr310', version: project.ext.jacksonVersion
-        implementation group: 'org.slf4j', name: 'slf4j-api', version: '1.8.0-beta4'
+        implementation group: 'org.slf4j', name: 'slf4j-api', version: '2.0.0-alpha1'
         implementation group: 'com.amazonaws', name: 'aws-lambda-java-core', version: '1.2.1'
         implementation group: 'com.amazonaws', name: 'aws-java-sdk-lambda', version: project.ext.awsSdkVersion
         implementation group: 'com.amazonaws', name: 'aws-java-sdk-cognitoidp', version: project.ext.awsSdkVersion

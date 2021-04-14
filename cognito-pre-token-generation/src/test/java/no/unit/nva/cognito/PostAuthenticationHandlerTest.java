@@ -190,8 +190,7 @@ public class PostAuthenticationHandlerTest {
     }
 
     @Test
-    public void
-    handlerReturnsUserWithoutCreatorRoleWhenUserHadCreatorRoleButNowHasAffiliationThatDoesNotGiveThemTheRole()
+    public void handlerReturnsUserWithoutCreatorRoleWhenUserHadCreatorRoleButNowHasAffiliationNotProvidingTheRole()
         throws InvalidEntryInternalException {
         prepareMocksWithExistingUser(createUserWithInstitutionAndCreatorRole());
         var currentUser = getUserFromMock();

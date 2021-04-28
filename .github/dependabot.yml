@@ -1,0 +1,29 @@
+version: 2
+updates:
+- package-ecosystem: gradle
+  directory: "/"
+  schedule:
+    interval: daily
+    timezone: Europe/Oslo
+  open-pull-requests-limit: 20
+  target-branch: develop
+  ignore:
+  - dependency-name: org.javers:javers-core
+    versions:
+    - 6.0.1
+  - dependency-name: nebula.lint
+    versions:
+    - 16.17.1
+    - 16.18.0
+    - 16.19.0
+    - 16.20.0
+    - 16.22.0
+  - dependency-name: com.amazonaws:aws-lambda-java-core
+    versions:
+    - 1.2.1
+  - dependency-name: org.zalando:problem
+    versions:
+    - 0.25.0
+  - dependency-name: org.mockito:mockito-core
+    versions:
+    - 3.8.0

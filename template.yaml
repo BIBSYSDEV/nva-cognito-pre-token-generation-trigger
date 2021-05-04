@@ -27,7 +27,7 @@ Parameters:
     Type: String
     Description: Name of the Secret for Users and Role Service
     Default: UserCatalogueApiKey
-UserServiceSecretKey:
+  UserServiceSecretKey:
     Type: String
     Description: Key in the Secret for Users and Role Service
     Default: ApiKey

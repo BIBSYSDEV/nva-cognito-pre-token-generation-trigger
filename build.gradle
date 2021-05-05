@@ -43,7 +43,7 @@ allprojects {
     dependencies {
         // not creating a project.ext variable to check if dependabot is actually picking this up.
         implementation group: 'com.github.bibsysdev', name: 'core', version: '1.5.8'
-        implementation group: 'com.github.bibsysdev', name: 'secrets', version: '1.5.8'
+        implementation group: 'com.github.bibsysdev', name: 'secrets', version: '1.5.16'
         implementation group: 'com.github.bibsysdev', name: 'apigateway', version: '1.5.8'
 
         implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: project.ext.jacksonVersion

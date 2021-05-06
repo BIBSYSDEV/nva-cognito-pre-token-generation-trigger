@@ -20,17 +20,21 @@ Globals:
 
 Parameters:
   CustomDomain:
-    Type: String
+    Type: AWS::SSM::Parameter::Value<String>
     Description: Custom API to connect this lambda to
+    Default: /NVA/CustomDomain
   UserServiceSecretName:
     Type: String
     Description: Name of the Secret for Users and Role Service
+    Default: UserCatalogueApiKey
   UserServiceSecretKey:
     Type: String
     Description: Key in the Secret for Users and Role Service
+    Default: ApiKey
   UserServiceSecretArn:
-    Type: String
+    Type: AWS::SSM::Parameter::Value<String>
     Description: ARN to the Secret for Users and Role Service
+    Default: /NVA/UserCatalogueApiKeyArn
   OutputName:
     Type: String
     Default: CognitoPreTokenGenerationTriggerArn

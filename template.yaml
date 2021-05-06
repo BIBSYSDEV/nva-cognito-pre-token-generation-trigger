@@ -83,7 +83,7 @@ Resources:
               - Effect: Allow
                 Action:
                   - secretsmanager:GetSecretValue
-                Resource: !Ref UserServiceSecretArn
+                Resource: !Ref UserServiceSecret
 
   InvokePostAuthenticationTriggerPermission:
     DependsOn:

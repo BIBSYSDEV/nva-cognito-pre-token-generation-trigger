@@ -31,10 +31,6 @@ Parameters:
     Type: String
     Description: Key in the Secret for Users and Role Service
     Default: ApiKey
-  UserServiceSecretArn:
-    Type: AWS::SSM::Parameter::Value<String>
-    Description: ARN to the Secret for Users and Role Service
-    Default: /NVA/UserCatalogueApiKeyArn
   OutputName:
     Type: String
     Default: CognitoPreTokenGenerationTriggerArn
@@ -166,6 +162,24 @@ Resources:
       Value: !Sub
         - ${PreTokenGenerationTriggerArn}:live
         - PreTokenGenerationTriggerArn: !GetAtt PreTokenGenerationTrigger.Arn
+
+  UserServiceSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: Secret that will be used by users and roles service
+      GenerateSecretString:
+        SecretStringTemplate: "{}"
+        GenerateStringKey: !Ref UserServiceSecretKey
+        PasswordLength: 30
+        ExcludeCharacters: '"@/\'
+      Name: !Ref UserServiceSecretName
+
+  UserServiceSecretArnParameter:
+    Type AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /NVA/${UserServiceSecretName}Arn
+      Type: String
+      Value: !Ref UserServiceSecret
 
 Outputs:
   CognitoPreTokenGenerationFunction:

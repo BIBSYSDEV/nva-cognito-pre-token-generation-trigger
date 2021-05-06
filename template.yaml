@@ -175,7 +175,7 @@ Resources:
       Name: !Ref UserServiceSecretName
 
   UserServiceSecretArnParameter:
-    Type AWS::SSM::Parameter
+    Type: AWS::SSM::Parameter
     Properties:
       Name: !Sub /NVA/${UserServiceSecretName}Arn
       Type: String

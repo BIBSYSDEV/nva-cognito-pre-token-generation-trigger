@@ -22,7 +22,7 @@ Parameters:
   CustomDomain:
     Type: AWS::SSM::Parameter::Value<String>
     Description: Custom API to connect this lambda to
-    Default: /NVA/CustomDomain
+    Default: CustomDomain
   UserServiceSecretName:
     Type: String
     Description: Name of the Secret for Users and Role Service
@@ -121,9 +121,9 @@ Resources:
       Environment:
         Variables:
           CUSTOMER_API_SCHEME: https
-          CUSTOMER_API_HOST: !Ref CustomDomain
+          CUSTOMER_API_HOST: !Sub api.${CustomDomain}
           USER_API_SCHEME: https
-          USER_API_HOST: !Ref CustomDomain
+          USER_API_HOST: !Sub api.${CustomDomain}
           USER_SERVICE_SECRET_NAME: !Ref UserServiceSecretName
           USER_SERVICE_SECRET_KEY: !Ref UserServiceSecretKey
 

@@ -135,6 +135,8 @@ public class UserApiClient implements UserApi {
     }
 
     private String fetchUserServiceCredentials() {
+        logger.info("userServiceSecretName:"+userServiceSecretName);
+        logger.info("userServiceSecretKey:"+ userServiceSecretKey);
         return attempt(() -> secretsReader.fetchSecret(userServiceSecretName, userServiceSecretKey)).orElseThrow();
     }
 
@@ -197,19 +199,23 @@ public class UserApiClient implements UserApi {
     }
 
     private URI formUri(String username) throws URISyntaxException {
-        return new URIBuilder()
-                   .setScheme(userApiScheme)
-                   .setHost(userApiHost)
-                   .setPath(String.join(DELIMITER, PATH, username))
-                   .build();
+        URI uri = new URIBuilder()
+                      .setScheme(userApiScheme)
+                      .setHost(userApiHost)
+                      .setPath(String.join(DELIMITER, PATH, username))
+                      .build();
+        logger.info("GET UserUri:"+ uri.toString());
+        return  uri;
     }
 
     private URI formUri() throws URISyntaxException {
-        return new URIBuilder()
-                   .setScheme(userApiScheme)
-                   .setHost(userApiHost)
-                   .setPath(PATH)
-                   .build();
+        URI uri = new URIBuilder()
+                      .setScheme(userApiScheme)
+                      .setHost(userApiHost)
+                      .setPath(PATH)
+                      .build();
+        logger.info("POST UserUri:"+ uri.toString());
+        return  uri;
     }
 
     private HttpRequest buildGetUserRequest(URI uri) {

@@ -135,8 +135,8 @@ public class UserApiClient implements UserApi {
     }
 
     private String fetchUserServiceCredentials() {
-        logger.info("userServiceSecretName:"+userServiceSecretName);
-        logger.info("userServiceSecretKey:"+ userServiceSecretKey);
+        logger.info("userServiceSecretName:" + userServiceSecretName);
+        logger.info("userServiceSecretKey:" + userServiceSecretKey);
         return attempt(() -> secretsReader.fetchSecret(userServiceSecretName, userServiceSecretKey)).orElseThrow();
     }
 
@@ -204,8 +204,8 @@ public class UserApiClient implements UserApi {
                       .setHost(userApiHost)
                       .setPath(String.join(DELIMITER, PATH, username))
                       .build();
-        logger.info("GET UserUri:"+ uri.toString());
-        return  uri;
+        logger.info("GET UserUri:" + uri.toString());
+        return uri;
     }
 
     private URI formUri() throws URISyntaxException {
@@ -214,15 +214,17 @@ public class UserApiClient implements UserApi {
                       .setHost(userApiHost)
                       .setPath(PATH)
                       .build();
-        logger.info("POST UserUri:"+ uri.toString());
-        return  uri;
+        logger.info("POST UserUri:" + uri.toString());
+        return uri;
     }
 
     private HttpRequest buildGetUserRequest(URI uri) {
-        return HttpRequest.newBuilder()
-                   .uri(uri)
-                   .GET()
-                   .build();
+        return Optional.of(HttpRequest.newBuilder())
+                   .map(builder -> builder.uri(uri))
+                   .map(this::authorizationHeader)
+                   .map(Builder::GET)
+                   .map(Builder::build)
+                   .orElseThrow();
     }
 
     private HttpRequest buildCreateUserRequest(URI uri, UserDto user) {
